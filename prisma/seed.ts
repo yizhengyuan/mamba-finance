@@ -1,8 +1,18 @@
+import "dotenv/config";
+
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
 import { generateRepaymentPlans } from "../src/lib/domain/repayment-plan-generator";
 
-const prisma = new PrismaClient();
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is required for seed");
+}
+
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: databaseUrl }),
+});
 
 async function main() {
   await prisma.attachment.deleteMany();

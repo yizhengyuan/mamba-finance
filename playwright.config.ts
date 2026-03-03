@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import { defineConfig, devices } from "@playwright/test";
 
 const port = Number(process.env.E2E_PORT ?? 3100);

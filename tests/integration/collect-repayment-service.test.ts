@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -67,6 +69,12 @@ async function cleanup(ids: {
 
   if (ids.transactionIds?.length) {
     await prisma.transaction.deleteMany({ where: { id: { in: ids.transactionIds } } });
+  }
+
+  if (ids.accountIds?.length) {
+    await prisma.transaction.deleteMany({
+      where: { accountId: { in: ids.accountIds } },
+    });
   }
 
   if (ids.orderIds?.length) {
