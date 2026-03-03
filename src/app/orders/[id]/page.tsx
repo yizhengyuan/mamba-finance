@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { AttachmentLightbox } from "@/components/attachments/lightbox";
+
 interface RepaymentPlanItem {
   id: string;
   periodIndex: number;
@@ -106,7 +108,7 @@ export default function OrderDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
 
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [collectPlan, setCollectPlan] = useState<RepaymentPlanItem | null>(null);
@@ -116,6 +118,13 @@ export default function OrderDetailPage() {
   const [collectError, setCollectError] = useState<string | null>(null);
 
   const endpoint = useMemo(() => `/api/orders/${orderId}`, [orderId]);
+  const imageAttachments = useMemo(
+    () => (order?.attachments ?? []).filter((attachment) => isImage(attachment)),
+    [order?.attachments],
+  );
+  const imageIndexById = useMemo(() => {
+    return new Map(imageAttachments.map((item, index) => [item.id, index]));
+  }, [imageAttachments]);
 
   useEffect(() => {
     let cancelled = false;
@@ -186,6 +195,16 @@ export default function OrderDetailPage() {
       cancelled = true;
     };
   }, [accountId]);
+
+  useEffect(() => {
+    if (previewIndex === null) {
+      return;
+    }
+
+    if (previewIndex < 0 || previewIndex >= imageAttachments.length) {
+      setPreviewIndex(null);
+    }
+  }, [imageAttachments.length, previewIndex]);
 
   async function submitCollect(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -335,12 +354,15 @@ export default function OrderDetailPage() {
               <p className="text-sm text-slate-300">No attachments uploaded.</p>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {order.attachments.map((attachment) => (
+                {order.attachments.map((attachment) => {
+                  const imageIndex = imageIndexById.get(attachment.id) ?? -1;
+                  const canPreview = imageIndex >= 0;
+                  return (
                   <button
                     key={attachment.id}
                     type="button"
                     className="group rounded-xl border border-white/10 bg-black/20 p-2 text-left hover:bg-white/5"
-                    onClick={() => isImage(attachment) && setPreviewUrl(attachment.fileUrl)}
+                    onClick={() => canPreview && setPreviewIndex(imageIndex)}
                   >
                     <div className="aspect-[4/3] overflow-hidden rounded-lg bg-slate-900">
                       {isImage(attachment) ? (
@@ -361,7 +383,8 @@ export default function OrderDetailPage() {
                       {formatCategory(attachment.category)} · {formatDate(attachment.createdAt)}
                     </p>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
@@ -436,28 +459,36 @@ export default function OrderDetailPage() {
         </div>
       ) : null}
 
-      {previewUrl ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
-          <button
-            type="button"
-            aria-label="Close image preview"
-            className="absolute inset-0"
-            onClick={() => setPreviewUrl(null)}
-          />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={previewUrl}
-            alt="Attachment preview"
-            className="relative z-10 max-h-[90vh] max-w-[90vw] rounded-xl border border-white/20"
-          />
-          <button
-            type="button"
-            className="absolute right-4 top-4 z-10 rounded-md border border-white/30 bg-black/30 px-3 py-1.5 text-xs text-white"
-            onClick={() => setPreviewUrl(null)}
-          >
-            Close
-          </button>
-        </div>
+      {previewIndex !== null && imageAttachments[previewIndex] ? (
+        <AttachmentLightbox
+          item={{
+            id: imageAttachments[previewIndex].id,
+            fileName: imageAttachments[previewIndex].fileName,
+            fileUrl: imageAttachments[previewIndex].fileUrl,
+            createdAt: formatDate(imageAttachments[previewIndex].createdAt),
+            sizeBytes: imageAttachments[previewIndex].sizeBytes,
+            categoryLabel: formatCategory(imageAttachments[previewIndex].category),
+          }}
+          index={previewIndex}
+          total={imageAttachments.length}
+          onClose={() => setPreviewIndex(null)}
+          onPrev={() =>
+            setPreviewIndex((current) => {
+              if (current === null || imageAttachments.length === 0) {
+                return null;
+              }
+              return (current - 1 + imageAttachments.length) % imageAttachments.length;
+            })
+          }
+          onNext={() =>
+            setPreviewIndex((current) => {
+              if (current === null || imageAttachments.length === 0) {
+                return null;
+              }
+              return (current + 1) % imageAttachments.length;
+            })
+          }
+        />
       ) : null}
     </section>
   );
