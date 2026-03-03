@@ -39,6 +39,13 @@ interface CalendarPayload {
   days: CalendarDay[];
 }
 
+interface AccountOption {
+  id: string;
+  name: string;
+  type: string;
+  isActive: boolean;
+}
+
 function money(value: number): string {
   return `¥${value.toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -81,6 +88,12 @@ function dayTitle(dateText: string): string {
   });
 }
 
+function defaultOccurredAtLocal(): string {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60 * 1000;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 16);
+}
+
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function RepaymentCalendarPage() {
@@ -92,6 +105,14 @@ export default function RepaymentCalendarPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [collectPlan, setCollectPlan] = useState<CalendarPlan | null>(null);
+  const [accountId, setAccountId] = useState("");
+  const [occurredAt, setOccurredAt] = useState(defaultOccurredAtLocal());
+  const [collecting, setCollecting] = useState(false);
+  const [collectError, setCollectError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -124,7 +145,14 @@ export default function RepaymentCalendarPage() {
 
         if (!cancelled) {
           setData(body.data ?? null);
-          setSelectedDate(null);
+          setSelectedDate((previous) => {
+            if (!previous) {
+              return null;
+            }
+            return (body.data?.days ?? []).some((day) => day.date === previous)
+              ? previous
+              : null;
+          });
         }
       } catch (err) {
         if (!cancelled) {
@@ -142,7 +170,34 @@ export default function RepaymentCalendarPage() {
     return () => {
       cancelled = true;
     };
-  }, [keyword, month, status]);
+  }, [keyword, month, refreshTick, status]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAccounts() {
+      try {
+        const response = await fetch("/api/accounts", { cache: "no-store" });
+        const body = (await response.json()) as { data?: AccountOption[] };
+        if (!response.ok || cancelled) {
+          return;
+        }
+
+        const activeAccounts = (body.data ?? []).filter((account) => account.isActive);
+        setAccounts(activeAccounts);
+        if (!accountId && activeAccounts.length > 0) {
+          setAccountId(activeAccounts[0].id);
+        }
+      } catch {
+        // Keep collect flow optional; page remains usable without account preload.
+      }
+    }
+
+    void loadAccounts();
+    return () => {
+      cancelled = true;
+    };
+  }, [accountId]);
 
   const dayMap = useMemo(() => {
     const map = new Map<string, CalendarDay>();
@@ -162,6 +217,50 @@ export default function RepaymentCalendarPage() {
   }, [data, month]);
 
   const selectedDay = selectedDate ? dayMap.get(selectedDate) : null;
+
+  async function submitCollect(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!collectPlan) {
+      return;
+    }
+
+    if (!accountId) {
+      setCollectError("Please select an account");
+      return;
+    }
+
+    if (!occurredAt) {
+      setCollectError("Please choose occurred time");
+      return;
+    }
+
+    setCollecting(true);
+    setCollectError(null);
+
+    try {
+      const response = await fetch(`/api/repayment-plans/${collectPlan.id}/collect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountId,
+          amount: collectPlan.totalDue,
+          occurredAt: new Date(occurredAt).toISOString(),
+          note: `Calendar collect period ${collectPlan.periodIndex}`,
+        }),
+      });
+      const body = (await response.json()) as { message?: string };
+      if (!response.ok) {
+        throw new Error(body.message ?? "Failed to collect repayment");
+      }
+
+      setCollectPlan(null);
+      setRefreshTick((tick) => tick + 1);
+    } catch (err) {
+      setCollectError(err instanceof Error ? err.message : "Failed to collect repayment");
+    } finally {
+      setCollecting(false);
+    }
+  }
 
   return (
     <section className="space-y-4">
@@ -330,12 +429,29 @@ export default function RepaymentCalendarPage() {
                   <p className="mt-2 text-sm text-cyan-200">{money(plan.totalDue)}</p>
                   <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
                     <span>Period {plan.periodIndex}</span>
-                    <Link
-                      href={`/orders/${plan.order.id}`}
-                      className="text-cyan-200 underline underline-offset-2"
-                    >
-                      Open order
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/orders/${plan.order.id}`}
+                        className="text-cyan-200 underline underline-offset-2"
+                      >
+                        Open order
+                      </Link>
+                      {plan.status !== "paid" ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCollectPlan(plan);
+                            setCollectError(null);
+                            setOccurredAt(defaultOccurredAtLocal());
+                          }}
+                          className="rounded-md border border-cyan-300/60 px-2 py-1 text-[11px] text-cyan-100 hover:bg-cyan-300/20"
+                        >
+                          Collect
+                        </button>
+                      ) : (
+                        <span className="text-[11px] text-slate-500">Settled</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -357,6 +473,74 @@ export default function RepaymentCalendarPage() {
           ) : null}
         </aside>
       </div>
+
+      {collectPlan ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <button
+            type="button"
+            className="absolute inset-0"
+            aria-label="Close collect dialog"
+            onClick={() => !collecting && setCollectPlan(null)}
+          />
+          <form
+            onSubmit={submitCollect}
+            className="relative z-10 w-full max-w-md rounded-xl border border-white/15 bg-slate-950 p-5"
+          >
+            <h4 className="text-base font-semibold">Collect Repayment</h4>
+            <p className="mt-1 text-xs text-slate-300">
+              {collectPlan.order.borrowerName} · Period #{collectPlan.periodIndex}
+            </p>
+            <p className="text-xs text-cyan-200">{money(collectPlan.totalDue)}</p>
+
+            <label className="mt-4 block">
+              <span className="mb-1 block text-xs text-slate-300">Account *</span>
+              <select
+                value={accountId}
+                onChange={(event) => setAccountId(event.target.value)}
+                className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
+                required
+              >
+                <option value="">Select account</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name} ({account.type})
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="mt-3 block">
+              <span className="mb-1 block text-xs text-slate-300">Occurred At *</span>
+              <input
+                type="datetime-local"
+                value={occurredAt}
+                onChange={(event) => setOccurredAt(event.target.value)}
+                className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
+                required
+              />
+            </label>
+
+            {collectError ? <p className="mt-3 text-sm text-rose-300">{collectError}</p> : null}
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => !collecting && setCollectPlan(null)}
+                className="rounded-md border border-white/20 px-3 py-1.5 text-xs text-slate-300 hover:bg-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={collecting}
+                className="rounded-md border border-cyan-300/60 bg-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100 hover:bg-cyan-300/30 disabled:opacity-50"
+              >
+                {collecting ? "Collecting..." : "Confirm Collect"}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </section>
   );
 }
