@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:up": "bash ./scripts/dev-up.sh",
+    "dev:share": "bash ./scripts/share-link.sh",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

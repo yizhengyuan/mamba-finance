@@ -40,8 +40,23 @@ Mamba Finance 是一个面向借贷订单周期的资产与债权管理系统（
    - Orders 页面可查看列表
    - Accounts 页面可查看账户
 
+## 一键启动与分享
+
+1. 一键本地启动（数据库 + 迁移 + seed + dev）：
+   - `npm run dev:up`
+2. 一键生成外部体验链接（需先安装 cloudflared）：
+   - `brew install cloudflared`
+   - 另开一个终端执行 `npm run dev:share`
+3. 把终端输出中的 `https://*.trycloudflare.com` 链接发给体验者
+
+注意：
+- 你关闭本机、关闭终端、或按 `Ctrl+C` 停止脚本后，分享链接会失效
+- 该链接适合临时演示，不建议用于正式生产环境
+
 ## 常用命令
 - `npm run dev`: 启动开发服务器
+- `npm run dev:up`: 一键启动数据库+迁移+seed+dev
+- `npm run dev:share`: 生成临时外部体验链接（cloudflared）
 - `npm run lint`: ESLint 检查
 - `npm run test:unit`: 单元测试
 - `npm run test:integration`: 集成测试（需要 `DATABASE_URL`）
