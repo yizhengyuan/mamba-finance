@@ -8,6 +8,7 @@ Mamba Finance 是一个面向借贷订单周期的资产与债权管理系统（
 - 任务拆解：[mvp-issue-breakdown.md](/Users/yzy/Desktop/yzy-workspace/mamba-finance/mvp-issue-breakdown.md)
 - Phase 2 技术方案：[tech-spec-v2.md](/Users/yzy/Desktop/yzy-workspace/mamba-finance/tech-spec-v2.md)
 - Phase 2 任务拆解：[phase2-issue-breakdown.md](/Users/yzy/Desktop/yzy-workspace/mamba-finance/phase2-issue-breakdown.md)
+- AI 中台愿景（冻结版）：[docs/ai-autonomous-finance-roadmap.md](/Users/yzy/Desktop/yzy-workspace/mamba-finance/docs/ai-autonomous-finance-roadmap.md)
 - 部署变量清单：[docs/deployment-env.md](/Users/yzy/Desktop/yzy-workspace/mamba-finance/docs/deployment-env.md)
 - 上线与回滚检查表：[docs/release-checklist.md](/Users/yzy/Desktop/yzy-workspace/mamba-finance/docs/release-checklist.md)
 
