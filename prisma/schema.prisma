@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Account {
+  id             String        @id @default(cuid())
+  name           String
+  type           AccountType
+  currency       String        @default("CNY")
+  openingBalance Decimal       @db.Decimal(18, 2)
+  currentBalance Decimal       @db.Decimal(18, 2)
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  transactions   Transaction[]
+}
+
+model Order {
+  id             String          @id @default(cuid())
+  orderNo        String          @unique
+  borrowerName   String
+  borrowerPhone  String?
+  principal      Decimal         @db.Decimal(18, 2)
+  monthlyRate    Decimal         @db.Decimal(8, 6)
+  startDate      DateTime
+  months         Int
+  collateralDesc String?
+  status         OrderStatus     @default(active)
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  repaymentPlans RepaymentPlan[]
+  attachments    Attachment[]
+}
+
+model RepaymentPlan {
+  id            String      @id @default(cuid())
+  orderId       String
+  periodIndex   Int
+  dueDate       DateTime
+  principalDue  Decimal     @db.Decimal(18, 2)
+  interestDue   Decimal     @db.Decimal(18, 2)
+  totalDue      Decimal     @db.Decimal(18, 2)
+  status        PlanStatus  @default(pending)
+  paidAt        DateTime?
+  transactionId String?     @unique
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  order         Order       @relation(fields: [orderId], references: [id])
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+
+  @@unique([orderId, periodIndex])
+  @@index([dueDate, status])
+}
+
+model Transaction {
+  id            String        @id @default(cuid())
+  accountId     String
+  type          TransactionType
+  amount        Decimal       @db.Decimal(18, 2)
+  occurredAt    DateTime
+  counterparty  String?
+  note          String?
+  createdAt     DateTime      @default(now())
+  account       Account       @relation(fields: [accountId], references: [id])
+  repaymentPlan RepaymentPlan?
+
+  @@index([accountId, occurredAt])
+}
+
+model Attachment {
+  id        String             @id @default(cuid())
+  orderId   String
+  category  AttachmentCategory
+  fileName  String
+  fileUrl   String
+  mimeType  String?
+  sizeBytes Int?
+  createdAt DateTime           @default(now())
+  order     Order              @relation(fields: [orderId], references: [id])
+
+  @@index([orderId, category])
+}
+
+enum AccountType {
+  cash
+  bank_card
+  wechat
+  alipay
+  other
+}
+
+enum OrderStatus {
+  active
+  closed
+  overdue
+}
+
+enum PlanStatus {
+  pending
+  paid
+  overdue
+}
+
+enum TransactionType {
+  inflow
+  outflow
+}
+
+enum AttachmentCategory {
+  transfer_receipt
+  collateral_photo
+  other
+}
