@@ -4,14 +4,13 @@ import { NextResponse } from "next/server";
 import { parseCollectRepaymentPayload } from "@/lib/api/collect-payload";
 import { PayloadValidationError } from "@/lib/api/payload-validation-error";
 import { prisma } from "@/lib/prisma";
-import { syncOrderStatus } from "@/lib/services/order-status-service";
+import {
+  collectRepayment,
+  CollectRepaymentError,
+} from "@/lib/services/collect-repayment-service";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
-}
-
-function round2(value: number): number {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 export async function POST(request: Request, context: RouteContext) {
@@ -21,86 +20,12 @@ export async function POST(request: Request, context: RouteContext) {
     const payload = await request.json();
     const input = parseCollectRepaymentPayload(payload);
 
-    const result = await prisma.$transaction(async (tx) => {
-      const plan = await tx.repaymentPlan.findUnique({
-        where: { id },
-        select: {
-          id: true,
-          orderId: true,
-          totalDue: true,
-          status: true,
-          order: {
-            select: {
-              borrowerName: true,
-            },
-          },
-        },
-      });
-
-      if (!plan) {
-        throw new Error("PLAN_NOT_FOUND");
-      }
-
-      const expected = round2(Number(plan.totalDue));
-      if (input.amount !== expected) {
-        throw new PayloadValidationError(
-          `amount must equal plan totalDue (${expected.toFixed(2)})`,
-        );
-      }
-
-      const account = await tx.account.findUnique({
-        where: { id: input.accountId },
-        select: { id: true },
-      });
-
-      if (!account) {
-        throw new Error("ACCOUNT_NOT_FOUND");
-      }
-
-      const transaction = await tx.transaction.create({
-        data: {
-          accountId: input.accountId,
-          type: "inflow",
-          amount: input.amount,
-          occurredAt: input.occurredAt,
-          counterparty: plan.order.borrowerName,
-          note: input.note,
-        },
-      });
-
-      const updated = await tx.repaymentPlan.updateMany({
-        where: {
-          id,
-          status: { not: "paid" },
-        },
-        data: {
-          status: "paid",
-          paidAt: input.occurredAt,
-          transactionId: transaction.id,
-        },
-      });
-
-      if (updated.count !== 1) {
-        throw new Error("PLAN_ALREADY_PAID");
-      }
-
-      await tx.account.update({
-        where: { id: input.accountId },
-        data: {
-          currentBalance: {
-            increment: input.amount,
-          },
-        },
-      });
-
-      const orderSyncResult = await syncOrderStatus(tx, plan.orderId, input.occurredAt);
-
-      return {
-        transactionId: transaction.id,
-        planId: id,
-        orderId: plan.orderId,
-        orderStatus: orderSyncResult.nextStatus,
-      };
+    const result = await collectRepayment(prisma, {
+      planId: id,
+      accountId: input.accountId,
+      amount: input.amount,
+      occurredAt: input.occurredAt,
+      note: input.note,
     });
 
     return NextResponse.json({ data: result });
@@ -119,23 +44,30 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
 
-    if (error instanceof Error && error.message === "PLAN_NOT_FOUND") {
+    if (error instanceof CollectRepaymentError && error.code === "PLAN_NOT_FOUND") {
       return NextResponse.json(
-        { error: "NOT_FOUND", message: `repayment plan not found: ${id}` },
+        { error: "NOT_FOUND", message: error.message },
         { status: 404 },
       );
     }
 
-    if (error instanceof Error && error.message === "ACCOUNT_NOT_FOUND") {
+    if (error instanceof CollectRepaymentError && error.code === "ACCOUNT_NOT_FOUND") {
       return NextResponse.json(
-        { error: "NOT_FOUND", message: "account not found" },
+        { error: "NOT_FOUND", message: error.message },
         { status: 404 },
       );
     }
 
-    if (error instanceof Error && error.message === "PLAN_ALREADY_PAID") {
+    if (error instanceof CollectRepaymentError && error.code === "AMOUNT_MISMATCH") {
       return NextResponse.json(
-        { error: "CONFLICT", message: "repayment plan already paid" },
+        { error: "BAD_REQUEST", message: error.message },
+        { status: 400 },
+      );
+    }
+
+    if (error instanceof CollectRepaymentError && error.code === "PLAN_ALREADY_PAID") {
+      return NextResponse.json(
+        { error: "CONFLICT", message: error.message },
         { status: 409 },
       );
     }
