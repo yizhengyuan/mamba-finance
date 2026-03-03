@@ -41,6 +41,12 @@ interface OrderDetail {
   attachments: AttachmentItem[];
 }
 
+interface AccountOption {
+  id: string;
+  name: string;
+  type: string;
+}
+
 function formatCurrency(value: string): string {
   const amount = Number(value);
   return Number.isFinite(amount)
@@ -85,6 +91,12 @@ function isImage(attachment: AttachmentItem): boolean {
   return (attachment.mimeType ?? "").startsWith("image/");
 }
 
+function defaultOccurredAtLocal(): string {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60 * 1000;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 16);
+}
+
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
   const orderId = params.id;
@@ -92,7 +104,16 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTick, setRefreshTick] = useState(0);
+
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [collectPlan, setCollectPlan] = useState<RepaymentPlanItem | null>(null);
+  const [accountId, setAccountId] = useState("");
+  const [occurredAt, setOccurredAt] = useState(defaultOccurredAtLocal());
+  const [collecting, setCollecting] = useState(false);
+  const [collectError, setCollectError] = useState<string | null>(null);
 
   const endpoint = useMemo(() => `/api/orders/${orderId}`, [orderId]);
 
@@ -133,7 +154,87 @@ export default function OrderDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [endpoint]);
+  }, [endpoint, refreshTick]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAccounts() {
+      try {
+        const response = await fetch("/api/accounts", { cache: "no-store" });
+        const body = (await response.json()) as {
+          data?: AccountOption[];
+        };
+
+        if (!response.ok || cancelled) {
+          return;
+        }
+
+        const fetched = body.data ?? [];
+        setAccounts(fetched);
+        if (!accountId && fetched.length > 0) {
+          setAccountId(fetched[0].id);
+        }
+      } catch {
+        // Keep page usable even if account list fails.
+      }
+    }
+
+    void loadAccounts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accountId]);
+
+  async function submitCollect(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    if (!collectPlan) {
+      return;
+    }
+
+    if (!accountId) {
+      setCollectError("Please select an account");
+      return;
+    }
+
+    if (!occurredAt) {
+      setCollectError("Please choose occurred time");
+      return;
+    }
+
+    setCollecting(true);
+    setCollectError(null);
+
+    try {
+      const response = await fetch(`/api/repayment-plans/${collectPlan.id}/collect`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          accountId,
+          amount: Number(collectPlan.totalDue),
+          occurredAt: new Date(occurredAt).toISOString(),
+          note: `Collect period ${collectPlan.periodIndex}`,
+        }),
+      });
+
+      const body = (await response.json()) as { message?: string };
+
+      if (!response.ok) {
+        throw new Error(body.message ?? "Failed to collect repayment");
+      }
+
+      setCollectPlan(null);
+      setRefreshTick((tick) => tick + 1);
+    } catch (err) {
+      setCollectError(err instanceof Error ? err.message : "Failed to collect repayment");
+    } finally {
+      setCollecting(false);
+    }
+  }
 
   return (
     <section className="space-y-4">
@@ -178,7 +279,7 @@ export default function OrderDetailPage() {
               <p className="text-sm text-slate-300">No repayment plans.</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px] text-left text-sm">
+                <table className="w-full min-w-[860px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-white/10 text-slate-300">
                       <th className="px-2 py-2 font-medium">Period</th>
@@ -188,6 +289,7 @@ export default function OrderDetailPage() {
                       <th className="px-2 py-2 font-medium">Total</th>
                       <th className="px-2 py-2 font-medium">Status</th>
                       <th className="px-2 py-2 font-medium">Paid At</th>
+                      <th className="px-2 py-2 font-medium">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -202,6 +304,23 @@ export default function OrderDetailPage() {
                           {plan.status}
                         </td>
                         <td className="px-2 py-2">{formatDate(plan.paidAt)}</td>
+                        <td className="px-2 py-2">
+                          {plan.status === "paid" ? (
+                            <span className="text-xs text-slate-400">Settled</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCollectPlan(plan);
+                                setCollectError(null);
+                                setOccurredAt(defaultOccurredAtLocal());
+                              }}
+                              className="rounded-md border border-cyan-300/60 px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-300/20"
+                            >
+                              Collect
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -247,6 +366,74 @@ export default function OrderDetailPage() {
             )}
           </section>
         </>
+      ) : null}
+
+      {collectPlan ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <button
+            type="button"
+            className="absolute inset-0"
+            aria-label="Close collect dialog"
+            onClick={() => !collecting && setCollectPlan(null)}
+          />
+          <form
+            onSubmit={submitCollect}
+            className="relative z-10 w-full max-w-md rounded-xl border border-white/15 bg-slate-950 p-5"
+          >
+            <h4 className="text-base font-semibold">Collect Repayment</h4>
+            <p className="mt-1 text-xs text-slate-300">
+              Period #{collectPlan.periodIndex} · {formatCurrency(collectPlan.totalDue)}
+            </p>
+
+            <label className="mt-4 block">
+              <span className="mb-1 block text-xs text-slate-300">Account *</span>
+              <select
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+                className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
+                required
+              >
+                <option value="">Select account</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name} ({account.type})
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="mt-3 block">
+              <span className="mb-1 block text-xs text-slate-300">Occurred At *</span>
+              <input
+                type="datetime-local"
+                value={occurredAt}
+                onChange={(e) => setOccurredAt(e.target.value)}
+                className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
+                required
+              />
+            </label>
+
+            {collectError ? <p className="mt-3 text-sm text-rose-300">{collectError}</p> : null}
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setCollectPlan(null)}
+                disabled={collecting}
+                className="rounded-md border border-white/20 px-3 py-1.5 text-xs text-slate-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={collecting}
+                className="rounded-md border border-cyan-300/60 bg-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100 disabled:opacity-50"
+              >
+                {collecting ? "Collecting..." : "Confirm Collect"}
+              </button>
+            </div>
+          </form>
+        </div>
       ) : null}
 
       {previewUrl ? (
