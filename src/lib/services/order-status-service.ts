@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 
 import {
   deriveOrderStatus,
@@ -12,69 +12,74 @@ export interface SyncOrderStatusResult {
   updated: boolean;
 }
 
+type DbClient = PrismaClient | Prisma.TransactionClient;
+
 export async function syncOrderStatus(
-  prisma: PrismaClient,
+  prisma: DbClient,
   orderId: string,
   now: Date = new Date(),
 ): Promise<SyncOrderStatusResult> {
-  return prisma.$transaction(async (tx) => {
-    await tx.repaymentPlan.updateMany({
-      where: {
-        orderId,
-        status: { not: "paid" },
-        dueDate: { lt: now },
-      },
-      data: { status: "overdue" },
-    });
+  const isPrismaClient = "$transaction" in prisma;
+  if (isPrismaClient) {
+    return prisma.$transaction((tx) => syncOrderStatus(tx, orderId, now));
+  }
 
-    await tx.repaymentPlan.updateMany({
-      where: {
-        orderId,
-        status: "overdue",
-        dueDate: { gte: now },
-      },
-      data: { status: "pending" },
-    });
+  await prisma.repaymentPlan.updateMany({
+    where: {
+      orderId,
+      status: { not: "paid" },
+      dueDate: { lt: now },
+    },
+    data: { status: "overdue" },
+  });
 
-    const order = await tx.order.findUnique({
-      where: { id: orderId },
-      select: {
-        id: true,
-        status: true,
-        repaymentPlans: {
-          select: {
-            dueDate: true,
-            status: true,
-          },
+  await prisma.repaymentPlan.updateMany({
+    where: {
+      orderId,
+      status: "overdue",
+      dueDate: { gte: now },
+    },
+    data: { status: "pending" },
+  });
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: {
+      id: true,
+      status: true,
+      repaymentPlans: {
+        select: {
+          dueDate: true,
+          status: true,
         },
       },
-    });
-
-    if (!order) {
-      throw new Error(`Order not found: ${orderId}`);
-    }
-
-    const previousStatus = order.status;
-    const nextStatus = deriveOrderStatus({
-      plans: order.repaymentPlans,
-      now,
-      currentStatus: previousStatus,
-    });
-
-    if (nextStatus !== previousStatus) {
-      await tx.order.update({
-        where: { id: orderId },
-        data: { status: nextStatus },
-      });
-    }
-
-    return {
-      orderId,
-      previousStatus,
-      nextStatus,
-      updated: nextStatus !== previousStatus,
-    };
+    },
   });
+
+  if (!order) {
+    throw new Error(`Order not found: ${orderId}`);
+  }
+
+  const previousStatus = order.status;
+  const nextStatus = deriveOrderStatus({
+    plans: order.repaymentPlans,
+    now,
+    currentStatus: previousStatus,
+  });
+
+  if (nextStatus !== previousStatus) {
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { status: nextStatus },
+    });
+  }
+
+  return {
+    orderId,
+    previousStatus,
+    nextStatus,
+    updated: nextStatus !== previousStatus,
+  };
 }
 
 export async function syncActiveOrdersStatus(
