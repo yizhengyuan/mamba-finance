@@ -51,6 +51,12 @@ interface DashboardCharts {
   }>;
 }
 
+interface DailyBrief {
+  generatedAt: string;
+  headline: string;
+  bullets: string[];
+}
+
 function money(value: number): string {
   return `¥${value.toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -74,6 +80,7 @@ function fmtDate(value: string): string {
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [charts, setCharts] = useState<DashboardCharts | null>(null);
+  const [brief, setBrief] = useState<DailyBrief | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,9 +92,10 @@ export default function DashboardPage() {
       setError(null);
 
       try {
-        const [summaryResponse, chartResponse] = await Promise.all([
+        const [summaryResponse, chartResponse, briefResponse] = await Promise.all([
           fetch("/api/dashboard/summary", { cache: "no-store" }),
           fetch("/api/dashboard/charts?range=30d", { cache: "no-store" }),
+          fetch("/api/ai/daily-brief", { cache: "no-store" }),
         ]);
         const summaryBody = (await summaryResponse.json()) as {
           data?: DashboardSummary;
@@ -97,6 +105,10 @@ export default function DashboardPage() {
           data?: DashboardCharts;
           message?: string;
         };
+        const briefBody = (await briefResponse.json()) as {
+          data?: DailyBrief;
+          message?: string;
+        };
 
         if (!summaryResponse.ok) {
           throw new Error(summaryBody.message ?? "Failed to load dashboard");
@@ -104,16 +116,21 @@ export default function DashboardPage() {
         if (!chartResponse.ok) {
           throw new Error(chartBody.message ?? "Failed to load dashboard charts");
         }
+        if (!briefResponse.ok) {
+          throw new Error(briefBody.message ?? "Failed to load daily brief");
+        }
 
         if (!cancelled) {
           setSummary(summaryBody.data ?? null);
           setCharts(chartBody.data ?? null);
+          setBrief(briefBody.data ?? null);
         }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load dashboard");
           setSummary(null);
           setCharts(null);
+          setBrief(null);
         }
       } finally {
         if (!cancelled) {
@@ -200,6 +217,20 @@ export default function DashboardPage() {
                 />
               </div>
             </div>
+          ) : null}
+
+          {brief ? (
+            <section className="rounded-2xl border border-cyan-300/20 bg-cyan-500/5 p-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold text-cyan-100">{brief.headline}</h3>
+                <span className="text-[11px] text-cyan-200/80">{fmtDate(brief.generatedAt)}</span>
+              </div>
+              <ul className="mt-2 space-y-1 text-sm text-slate-200">
+                {brief.bullets.map((line, index) => (
+                  <li key={`${line}-${index}`}>- {line}</li>
+                ))}
+              </ul>
+            </section>
           ) : null}
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
