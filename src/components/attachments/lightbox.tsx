@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface LightboxItem {
   id: string;
@@ -18,6 +18,8 @@ interface AttachmentLightboxProps {
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
+  onDelete?: () => void;
+  deleting?: boolean;
 }
 
 function formatSize(sizeBytes: number | null): string {
@@ -41,7 +43,11 @@ export function AttachmentLightbox({
   onClose,
   onPrev,
   onNext,
+  onDelete,
+  deleting = false,
 }: AttachmentLightboxProps) {
+  const touchStartXRef = useRef(0);
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -82,7 +88,24 @@ export function AttachmentLightbox({
           </p>
         </div>
 
-        <div className="relative overflow-hidden rounded-xl border border-white/20 bg-black/40">
+        <div
+          className="relative overflow-hidden rounded-xl border border-white/20 bg-black/40"
+          onTouchStart={(event) => {
+            touchStartXRef.current = event.changedTouches[0]?.clientX ?? 0;
+          }}
+          onTouchEnd={(event) => {
+            const endX = event.changedTouches[0]?.clientX ?? 0;
+            const delta = endX - touchStartXRef.current;
+            if (Math.abs(delta) < 36) {
+              return;
+            }
+            if (delta > 0) {
+              onPrev();
+            } else {
+              onNext();
+            }
+          }}
+        >
           <button
             type="button"
             onClick={onPrev}
@@ -102,6 +125,38 @@ export function AttachmentLightbox({
             className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-md border border-white/25 bg-black/50 px-2 py-2 text-xs text-white hover:bg-black/70"
           >
             Next
+          </button>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2 rounded-lg border border-white/20 bg-black/50 p-2 text-xs sm:hidden">
+          <button
+            type="button"
+            onClick={onPrev}
+            className="rounded-md border border-white/25 px-2 py-2 text-white"
+          >
+            Prev
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            className="rounded-md border border-white/25 px-2 py-2 text-white"
+          >
+            Next
+          </button>
+          <button
+            type="button"
+            disabled={!onDelete || deleting}
+            onClick={() => onDelete?.()}
+            className="rounded-md border border-rose-300/40 px-2 py-2 text-rose-200 disabled:opacity-50"
+          >
+            {deleting ? "Deleting..." : "Delete"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-white/25 px-2 py-2 text-white"
+          >
+            Close
           </button>
         </div>
       </div>

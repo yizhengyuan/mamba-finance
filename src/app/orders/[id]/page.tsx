@@ -109,6 +109,8 @@ export default function OrderDetailPage() {
   const [refreshTick, setRefreshTick] = useState(0);
 
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [deletingAttachment, setDeletingAttachment] = useState(false);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
 
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [collectPlan, setCollectPlan] = useState<RepaymentPlanItem | null>(null);
@@ -255,6 +257,42 @@ export default function OrderDetailPage() {
     }
   }
 
+  async function deleteCurrentAttachment() {
+    if (previewIndex === null) {
+      return;
+    }
+
+    const attachment = imageAttachments[previewIndex];
+    if (!attachment) {
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete attachment "${attachment.fileName}"?`);
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingAttachment(true);
+    setAttachmentError(null);
+
+    try {
+      const response = await fetch(`/api/attachments/${attachment.id}`, {
+        method: "DELETE",
+      });
+      const body = (await response.json()) as { message?: string };
+      if (!response.ok) {
+        throw new Error(body.message ?? "Failed to delete attachment");
+      }
+
+      setPreviewIndex(null);
+      setRefreshTick((tick) => tick + 1);
+    } catch (err) {
+      setAttachmentError(err instanceof Error ? err.message : "Failed to delete attachment");
+    } finally {
+      setDeletingAttachment(false);
+    }
+  }
+
   return (
     <section className="space-y-4">
       <div className="rounded-2xl border border-white/10 bg-black/25 p-6 backdrop-blur">
@@ -350,6 +388,7 @@ export default function OrderDetailPage() {
 
           <section className="rounded-2xl border border-white/10 bg-black/25 p-6 backdrop-blur">
             <h3 className="mb-3 text-lg font-semibold">Attachment Wall</h3>
+            {attachmentError ? <p className="mb-3 text-sm text-rose-300">{attachmentError}</p> : null}
             {order.attachments.length === 0 ? (
               <p className="text-sm text-slate-300">No attachments uploaded.</p>
             ) : (
@@ -488,6 +527,8 @@ export default function OrderDetailPage() {
               return (current + 1) % imageAttachments.length;
             })
           }
+          onDelete={deleteCurrentAttachment}
+          deleting={deletingAttachment}
         />
       ) : null}
     </section>
