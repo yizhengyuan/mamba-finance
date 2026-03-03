@@ -26,6 +26,10 @@ interface CalendarDay {
 
 interface CalendarPayload {
   month: string;
+  filters?: {
+    status?: "pending" | "paid" | "overdue";
+    keyword?: string;
+  };
   summary: {
     dueCount: number;
     dueAmount: number;
@@ -81,6 +85,9 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function RepaymentCalendarPage() {
   const [month, setMonth] = useState(() => toMonthKey(new Date()));
+  const [status, setStatus] = useState<"all" | "pending" | "paid" | "overdue">("all");
+  const [keywordInput, setKeywordInput] = useState("");
+  const [keyword, setKeyword] = useState("");
   const [data, setData] = useState<CalendarPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,8 +100,17 @@ export default function RepaymentCalendarPage() {
       setLoading(true);
       setError(null);
       try {
+        const params = new URLSearchParams();
+        params.set("month", month);
+        if (status !== "all") {
+          params.set("status", status);
+        }
+        if (keyword) {
+          params.set("keyword", keyword);
+        }
+
         const response = await fetch(
-          `/api/calendar/repayments?month=${encodeURIComponent(month)}`,
+          `/api/calendar/repayments?${params.toString()}`,
           { cache: "no-store" },
         );
         const body = (await response.json()) as {
@@ -126,7 +142,7 @@ export default function RepaymentCalendarPage() {
     return () => {
       cancelled = true;
     };
-  }, [month]);
+  }, [keyword, month, status]);
 
   const dayMap = useMemo(() => {
     const map = new Map<string, CalendarDay>();
@@ -158,6 +174,60 @@ export default function RepaymentCalendarPage() {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_360px]">
         <section className="rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur">
+          <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-[160px_1fr_auto]">
+            <label className="text-xs text-slate-300">
+              <span className="mb-1 block">Status</span>
+              <select
+                value={status}
+                onChange={(event) =>
+                  setStatus(event.target.value as "all" | "pending" | "paid" | "overdue")
+                }
+                className="w-full rounded-md border border-white/15 bg-black/30 px-2 py-2 text-sm text-slate-100 outline-none"
+              >
+                <option value="all">all</option>
+                <option value="pending">pending</option>
+                <option value="paid">paid</option>
+                <option value="overdue">overdue</option>
+              </select>
+            </label>
+
+            <label className="text-xs text-slate-300">
+              <span className="mb-1 block">Borrower Keyword</span>
+              <input
+                value={keywordInput}
+                onChange={(event) => setKeywordInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    setKeyword(keywordInput.trim());
+                  }
+                }}
+                placeholder="e.g. 张三"
+                className="w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500"
+              />
+            </label>
+
+            <div className="flex items-end gap-2">
+              <button
+                type="button"
+                onClick={() => setKeyword(keywordInput.trim())}
+                className="rounded-md border border-white/15 px-3 py-2 text-xs text-slate-100 transition hover:bg-white/10"
+              >
+                Search
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStatus("all");
+                  setKeyword("");
+                  setKeywordInput("");
+                }}
+                className="rounded-md border border-white/15 px-3 py-2 text-xs text-slate-300 transition hover:bg-white/10"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+
           <div className="mb-4 flex items-center justify-between">
             <button
               type="button"
@@ -189,6 +259,18 @@ export default function RepaymentCalendarPage() {
 
           {loading ? <p className="text-sm text-slate-300">Loading calendar...</p> : null}
           {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+          {!loading && !error && data ? (
+            <p className="mb-3 text-xs text-slate-400">
+              Active filter: status=
+              <span className="text-slate-200">
+                {data.filters?.status ?? "all"}
+              </span>
+              , keyword=
+              <span className="text-slate-200">
+                {data.filters?.keyword ?? "-"}
+              </span>
+            </p>
+          ) : null}
 
           {!loading && !error ? (
             <div className="grid grid-cols-7 gap-2">
