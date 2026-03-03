@@ -26,7 +26,7 @@ test("buildDailyBrief returns headline and risk bullets", () => {
     ],
   });
 
-  assert.equal(result.headline, "Mamba Daily Brief");
+  assert.equal(result.headline, "每日经营简报");
   assert.equal(result.bullets.length, 3);
   assert.match(result.bullets[0] ?? "", /今日到期 2 笔/);
   assert.match(result.bullets[1] ?? "", /张三/);

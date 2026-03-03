@@ -48,7 +48,7 @@ export function LineChart({ title, points, valueFormatter }: LineChartProps) {
       </div>
 
       {points.length === 0 ? (
-        <p className="text-sm text-slate-300">No trend data.</p>
+        <p className="text-sm text-slate-300">暂无趋势数据。</p>
       ) : (
         <>
           <svg

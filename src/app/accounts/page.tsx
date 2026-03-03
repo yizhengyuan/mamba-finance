@@ -29,10 +29,13 @@ function money(value: string): string {
 
 function typeLabel(type: AccountType): string {
   if (type === "bank_card") {
-    return "Bank Card";
+    return "银行卡";
   }
 
-  return type.replace("_", " ").replace(/^\w/, (s) => s.toUpperCase());
+  if (type === "cash") return "现金";
+  if (type === "wechat") return "微信";
+  if (type === "alipay") return "支付宝";
+  return "其他";
 }
 
 export default function AccountsPage() {
@@ -67,12 +70,12 @@ export default function AccountsPage() {
       const body = (await response.json()) as { data?: AccountItem[]; message?: string };
 
       if (!response.ok) {
-        throw new Error(body.message ?? "Failed to load accounts");
+        throw new Error(body.message ?? "加载账户失败");
       }
 
       setAccounts(body.data ?? []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load accounts");
+      setError(err instanceof Error ? err.message : "加载账户失败");
       setAccounts([]);
     } finally {
       setLoading(false);
@@ -89,12 +92,12 @@ export default function AccountsPage() {
 
     const openingBalance = Number(createForm.openingBalance);
     if (!createForm.name.trim()) {
-      setCreateError("Name is required");
+      setCreateError("请输入账户名称");
       return;
     }
 
     if (!Number.isFinite(openingBalance) || openingBalance < 0) {
-      setCreateError("Opening balance must be >= 0");
+      setCreateError("期初余额必须大于等于 0");
       return;
     }
 
@@ -112,14 +115,14 @@ export default function AccountsPage() {
 
       const body = (await response.json()) as { message?: string };
       if (!response.ok) {
-        throw new Error(body.message ?? "Failed to create account");
+        throw new Error(body.message ?? "创建账户失败");
       }
 
       setCreateOpen(false);
       setCreateForm({ name: "", type: "cash", openingBalance: "0" });
       await loadAccounts();
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : "Failed to create account");
+      setCreateError(err instanceof Error ? err.message : "创建账户失败");
     } finally {
       setCreateSubmitting(false);
     }
@@ -142,7 +145,7 @@ export default function AccountsPage() {
     }
 
     if (!editForm.name.trim()) {
-      setEditError("Name is required");
+      setEditError("请输入账户名称");
       return;
     }
 
@@ -162,13 +165,13 @@ export default function AccountsPage() {
 
       const body = (await response.json()) as { message?: string };
       if (!response.ok) {
-        throw new Error(body.message ?? "Failed to update account");
+        throw new Error(body.message ?? "更新账户失败");
       }
 
       setEditing(null);
       await loadAccounts();
     } catch (err) {
-      setEditError(err instanceof Error ? err.message : "Failed to update account");
+      setEditError(err instanceof Error ? err.message : "更新账户失败");
     } finally {
       setEditSubmitting(false);
     }
@@ -178,9 +181,9 @@ export default function AccountsPage() {
     <section className="rounded-2xl border border-white/10 bg-black/25 p-6 backdrop-blur">
       <div className="mb-5 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold">Accounts</h2>
+          <h2 className="text-xl font-semibold">账户管理</h2>
           <p className="mt-1 text-sm text-slate-300">
-            Manage account pool, type, and active state.
+            管理资金账户、账户类型与启用状态。
           </p>
         </div>
         <button
@@ -188,15 +191,15 @@ export default function AccountsPage() {
           onClick={() => setCreateOpen(true)}
           className="rounded-md border border-cyan-300/60 bg-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100 hover:bg-cyan-300/30"
         >
-          New Account
+          新建账户
         </button>
       </div>
 
-      {loading ? <p className="text-sm text-slate-300">Loading accounts...</p> : null}
+      {loading ? <p className="text-sm text-slate-300">账户加载中...</p> : null}
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
 
       {!loading && !error && accounts.length === 0 ? (
-        <p className="text-sm text-slate-300">No accounts yet.</p>
+        <p className="text-sm text-slate-300">暂无账户。</p>
       ) : null}
 
       {!loading && !error && accounts.length > 0 ? (
@@ -204,13 +207,13 @@ export default function AccountsPage() {
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead>
               <tr className="border-b border-white/10 text-slate-300">
-                <th className="px-2 py-3 font-medium">Name</th>
-                <th className="px-2 py-3 font-medium">Type</th>
-                <th className="px-2 py-3 font-medium">Currency</th>
-                <th className="px-2 py-3 font-medium">Opening</th>
-                <th className="px-2 py-3 font-medium">Current</th>
-                <th className="px-2 py-3 font-medium">Status</th>
-                <th className="px-2 py-3 font-medium">Action</th>
+                <th className="px-2 py-3 font-medium">名称</th>
+                <th className="px-2 py-3 font-medium">类型</th>
+                <th className="px-2 py-3 font-medium">币种</th>
+                <th className="px-2 py-3 font-medium">期初</th>
+                <th className="px-2 py-3 font-medium">当前</th>
+                <th className="px-2 py-3 font-medium">状态</th>
+                <th className="px-2 py-3 font-medium">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -222,7 +225,7 @@ export default function AccountsPage() {
                   <td className="px-2 py-3">{money(account.openingBalance)}</td>
                   <td className="px-2 py-3">{money(account.currentBalance)}</td>
                   <td className="px-2 py-3 text-xs uppercase tracking-wide text-cyan-200">
-                    {account.isActive ? "active" : "inactive"}
+                    {account.isActive ? "启用" : "停用"}
                   </td>
                   <td className="px-2 py-3">
                     <button
@@ -230,7 +233,7 @@ export default function AccountsPage() {
                       onClick={() => openEdit(account)}
                       className="rounded-md border border-white/20 px-2 py-1 text-xs hover:bg-white/10"
                     >
-                      Edit
+                      编辑
                     </button>
                   </td>
                 </tr>
@@ -241,9 +244,9 @@ export default function AccountsPage() {
       ) : null}
 
       {createOpen ? (
-        <Modal title="Create Account" onClose={() => !createSubmitting && setCreateOpen(false)}>
+        <Modal title="新建账户" onClose={() => !createSubmitting && setCreateOpen(false)}>
           <form className="space-y-3" onSubmit={submitCreate}>
-            <Field label="Name *">
+            <Field label="名称 *">
               <input
                 value={createForm.name}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
@@ -252,7 +255,7 @@ export default function AccountsPage() {
               />
             </Field>
 
-            <Field label="Type *">
+            <Field label="类型 *">
               <select
                 value={createForm.type}
                 onChange={(e) =>
@@ -268,7 +271,7 @@ export default function AccountsPage() {
               </select>
             </Field>
 
-            <Field label="Opening Balance *">
+            <Field label="期初余额 *">
               <input
                 type="number"
                 min="0"
@@ -291,14 +294,14 @@ export default function AccountsPage() {
                 onClick={() => setCreateOpen(false)}
                 className="rounded-md border border-white/20 px-3 py-1.5 text-xs text-slate-200 disabled:opacity-50"
               >
-                Cancel
+                取消
               </button>
               <button
                 type="submit"
                 disabled={createSubmitting}
                 className="rounded-md border border-cyan-300/60 bg-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100 disabled:opacity-50"
               >
-                {createSubmitting ? "Creating..." : "Create"}
+                {createSubmitting ? "创建中..." : "创建"}
               </button>
             </div>
           </form>
@@ -306,9 +309,9 @@ export default function AccountsPage() {
       ) : null}
 
       {editing ? (
-        <Modal title="Edit Account" onClose={() => !editSubmitting && setEditing(null)}>
+        <Modal title="编辑账户" onClose={() => !editSubmitting && setEditing(null)}>
           <form className="space-y-3" onSubmit={submitEdit}>
-            <Field label="Name *">
+            <Field label="名称 *">
               <input
                 value={editForm.name}
                 onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
@@ -317,7 +320,7 @@ export default function AccountsPage() {
               />
             </Field>
 
-            <Field label="Type *">
+            <Field label="类型 *">
               <select
                 value={editForm.type}
                 onChange={(e) =>
@@ -333,7 +336,7 @@ export default function AccountsPage() {
               </select>
             </Field>
 
-            <Field label="Status">
+            <Field label="状态">
               <select
                 value={editForm.isActive ? "active" : "inactive"}
                 onChange={(e) =>
@@ -341,8 +344,8 @@ export default function AccountsPage() {
                 }
                 className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
               >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="active">启用</option>
+                <option value="inactive">停用</option>
               </select>
             </Field>
 
@@ -355,14 +358,14 @@ export default function AccountsPage() {
                 onClick={() => setEditing(null)}
                 className="rounded-md border border-white/20 px-3 py-1.5 text-xs text-slate-200 disabled:opacity-50"
               >
-                Cancel
+                取消
               </button>
               <button
                 type="submit"
                 disabled={editSubmitting}
                 className="rounded-md border border-cyan-300/60 bg-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100 disabled:opacity-50"
               >
-                {editSubmitting ? "Saving..." : "Save"}
+                {editSubmitting ? "保存中..." : "保存"}
               </button>
             </div>
           </form>
@@ -394,7 +397,7 @@ function Modal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <button
         type="button"
-        aria-label={`Close ${title}`}
+        aria-label={`关闭${title}`}
         className="absolute inset-0"
         onClick={onClose}
       />
@@ -406,7 +409,7 @@ function Modal({
             onClick={onClose}
             className="rounded-md border border-white/20 px-2 py-1 text-xs text-slate-200"
           >
-            Close
+            关闭
           </button>
         </div>
         {children}

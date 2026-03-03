@@ -74,7 +74,7 @@ export function buildDailyBrief(params: {
 
   return {
     generatedAt: params.generatedAt.toISOString(),
-    headline: "Mamba Daily Brief",
+    headline: "每日经营简报",
     bullets,
   };
 }

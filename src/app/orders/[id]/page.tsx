@@ -80,17 +80,37 @@ function formatDate(value: string | null): string {
 
 function formatCategory(category: AttachmentItem["category"]): string {
   if (category === "transfer_receipt") {
-    return "Transfer Receipt";
+    return "转账回单";
   }
   if (category === "collateral_photo") {
-    return "Collateral";
+    return "抵押物照片";
   }
 
-  return "Other";
+  return "其他";
+}
+
+function formatAccountType(type: string): string {
+  if (type === "cash") return "现金";
+  if (type === "bank_card") return "银行卡";
+  if (type === "wechat") return "微信";
+  if (type === "alipay") return "支付宝";
+  return "其他";
 }
 
 function isImage(attachment: AttachmentItem): boolean {
   return (attachment.mimeType ?? "").startsWith("image/");
+}
+
+function orderStatusLabel(status: OrderDetail["status"]): string {
+  if (status === "active") return "执行中";
+  if (status === "overdue") return "逾期";
+  return "已结清";
+}
+
+function planStatusLabel(status: RepaymentPlanItem["status"]): string {
+  if (status === "pending") return "待收";
+  if (status === "overdue") return "逾期";
+  return "已收";
 }
 
 function defaultOccurredAtLocal(): string {
@@ -143,7 +163,7 @@ export default function OrderDetailPage() {
         };
 
         if (!response.ok) {
-          throw new Error(body.message ?? "Failed to fetch order");
+          throw new Error(body.message ?? "加载订单详情失败");
         }
 
         if (!cancelled) {
@@ -151,7 +171,7 @@ export default function OrderDetailPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to fetch order");
+          setError(err instanceof Error ? err.message : "加载订单详情失败");
         }
       } finally {
         if (!cancelled) {
@@ -216,12 +236,12 @@ export default function OrderDetailPage() {
     }
 
     if (!accountId) {
-      setCollectError("Please select an account");
+      setCollectError("请选择收款账户");
       return;
     }
 
     if (!occurredAt) {
-      setCollectError("Please choose occurred time");
+      setCollectError("请选择发生时间");
       return;
     }
 
@@ -238,20 +258,20 @@ export default function OrderDetailPage() {
           accountId,
           amount: Number(collectPlan.totalDue),
           occurredAt: new Date(occurredAt).toISOString(),
-          note: `Collect period ${collectPlan.periodIndex}`,
+          note: `核销第${collectPlan.periodIndex}期`,
         }),
       });
 
       const body = (await response.json()) as { message?: string };
 
       if (!response.ok) {
-        throw new Error(body.message ?? "Failed to collect repayment");
+        throw new Error(body.message ?? "核销回款失败");
       }
 
       setCollectPlan(null);
       setRefreshTick((tick) => tick + 1);
     } catch (err) {
-      setCollectError(err instanceof Error ? err.message : "Failed to collect repayment");
+      setCollectError(err instanceof Error ? err.message : "核销回款失败");
     } finally {
       setCollecting(false);
     }
@@ -267,7 +287,7 @@ export default function OrderDetailPage() {
       return;
     }
 
-    const confirmed = window.confirm(`Delete attachment "${attachment.fileName}"?`);
+    const confirmed = window.confirm(`确认删除附件「${attachment.fileName}」吗？`);
     if (!confirmed) {
       return;
     }
@@ -281,13 +301,13 @@ export default function OrderDetailPage() {
       });
       const body = (await response.json()) as { message?: string };
       if (!response.ok) {
-        throw new Error(body.message ?? "Failed to delete attachment");
+        throw new Error(body.message ?? "删除附件失败");
       }
 
       setPreviewIndex(null);
       setRefreshTick((tick) => tick + 1);
     } catch (err) {
-      setAttachmentError(err instanceof Error ? err.message : "Failed to delete attachment");
+      setAttachmentError(err instanceof Error ? err.message : "删除附件失败");
     } finally {
       setDeletingAttachment(false);
     }
@@ -298,32 +318,32 @@ export default function OrderDetailPage() {
       <div className="rounded-2xl border border-white/10 bg-black/25 p-6 backdrop-blur">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold">Order Detail</h2>
-            <p className="mt-1 text-sm text-slate-300">Order ID: {orderId}</p>
+            <h2 className="text-xl font-semibold">订单详情</h2>
+            <p className="mt-1 text-sm text-slate-300">订单 ID：{orderId}</p>
           </div>
           <Link
             href="/orders"
             className="rounded-md border border-white/20 px-3 py-1.5 text-xs text-slate-200 hover:bg-white/10"
           >
-            Back to Orders
+            返回订单列表
           </Link>
         </div>
 
-        {loading ? <p className="text-sm text-slate-300">Loading order detail...</p> : null}
+        {loading ? <p className="text-sm text-slate-300">订单详情加载中...</p> : null}
         {error ? <p className="text-sm text-rose-300">{error}</p> : null}
 
         {!loading && !error && order ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Info label="Order No" value={order.orderNo} mono />
-            <Info label="Borrower" value={order.borrowerName} />
-            <Info label="Phone" value={order.borrowerPhone ?? "-"} />
-            <Info label="Principal" value={formatCurrency(order.principal)} />
-            <Info label="Monthly Rate" value={order.monthlyRate} />
-            <Info label="Months" value={String(order.months)} />
-            <Info label="Start Date" value={formatDate(order.startDate)} />
-            <Info label="Status" value={order.status.toUpperCase()} />
-            <Info label="Collateral" value={order.collateralDesc ?? "-"} />
-            <Info label="Notes" value={order.notes ?? "-"} full />
+            <Info label="订单编号" value={order.orderNo} mono />
+            <Info label="借款人" value={order.borrowerName} />
+            <Info label="手机号" value={order.borrowerPhone ?? "-"} />
+            <Info label="本金" value={formatCurrency(order.principal)} />
+            <Info label="月利率" value={order.monthlyRate} />
+            <Info label="期数" value={String(order.months)} />
+            <Info label="起息日期" value={formatDate(order.startDate)} />
+            <Info label="状态" value={orderStatusLabel(order.status)} />
+            <Info label="抵押物" value={order.collateralDesc ?? "-"} />
+            <Info label="备注" value={order.notes ?? "-"} full />
           </div>
         ) : null}
       </div>
@@ -331,39 +351,39 @@ export default function OrderDetailPage() {
       {!loading && !error && order ? (
         <>
           <section className="rounded-2xl border border-white/10 bg-black/25 p-6 backdrop-blur">
-            <h3 className="mb-3 text-lg font-semibold">Repayment Plans</h3>
+            <h3 className="mb-3 text-lg font-semibold">还款计划</h3>
             {order.repaymentPlans.length === 0 ? (
-              <p className="text-sm text-slate-300">No repayment plans.</p>
+              <p className="text-sm text-slate-300">暂无还款计划。</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[860px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-white/10 text-slate-300">
-                      <th className="px-2 py-2 font-medium">Period</th>
-                      <th className="px-2 py-2 font-medium">Due Date</th>
-                      <th className="px-2 py-2 font-medium">Interest</th>
-                      <th className="px-2 py-2 font-medium">Principal</th>
-                      <th className="px-2 py-2 font-medium">Total</th>
-                      <th className="px-2 py-2 font-medium">Status</th>
-                      <th className="px-2 py-2 font-medium">Paid At</th>
-                      <th className="px-2 py-2 font-medium">Action</th>
+                      <th className="px-2 py-2 font-medium">期次</th>
+                      <th className="px-2 py-2 font-medium">到期日</th>
+                      <th className="px-2 py-2 font-medium">利息</th>
+                      <th className="px-2 py-2 font-medium">本金</th>
+                      <th className="px-2 py-2 font-medium">合计</th>
+                      <th className="px-2 py-2 font-medium">状态</th>
+                      <th className="px-2 py-2 font-medium">实收时间</th>
+                      <th className="px-2 py-2 font-medium">操作</th>
                     </tr>
                   </thead>
                   <tbody>
                     {order.repaymentPlans.map((plan) => (
                       <tr key={plan.id} className="border-b border-white/5 text-slate-100">
-                        <td className="px-2 py-2">#{plan.periodIndex}</td>
+                        <td className="px-2 py-2">第 {plan.periodIndex} 期</td>
                         <td className="px-2 py-2">{formatDate(plan.dueDate)}</td>
                         <td className="px-2 py-2">{formatCurrency(plan.interestDue)}</td>
                         <td className="px-2 py-2">{formatCurrency(plan.principalDue)}</td>
                         <td className="px-2 py-2">{formatCurrency(plan.totalDue)}</td>
                         <td className="px-2 py-2 uppercase text-xs tracking-wide text-cyan-200">
-                          {plan.status}
+                          {planStatusLabel(plan.status)}
                         </td>
                         <td className="px-2 py-2">{formatDate(plan.paidAt)}</td>
                         <td className="px-2 py-2">
                           {plan.status === "paid" ? (
-                            <span className="text-xs text-slate-400">Settled</span>
+                            <span className="text-xs text-slate-400">已结清</span>
                           ) : (
                             <button
                               type="button"
@@ -374,7 +394,7 @@ export default function OrderDetailPage() {
                               }}
                               className="rounded-md border border-cyan-300/60 px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-300/20"
                             >
-                              Collect
+                              核销
                             </button>
                           )}
                         </td>
@@ -387,10 +407,10 @@ export default function OrderDetailPage() {
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-black/25 p-6 backdrop-blur">
-            <h3 className="mb-3 text-lg font-semibold">Attachment Wall</h3>
+            <h3 className="mb-3 text-lg font-semibold">附件墙</h3>
             {attachmentError ? <p className="mb-3 text-sm text-rose-300">{attachmentError}</p> : null}
             {order.attachments.length === 0 ? (
-              <p className="text-sm text-slate-300">No attachments uploaded.</p>
+              <p className="text-sm text-slate-300">暂无已上传附件。</p>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {order.attachments.map((attachment) => {
@@ -413,7 +433,7 @@ export default function OrderDetailPage() {
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center text-xs text-slate-400">
-                          No Preview
+                          暂无预览
                         </div>
                       )}
                     </div>
@@ -435,37 +455,37 @@ export default function OrderDetailPage() {
           <button
             type="button"
             className="absolute inset-0"
-            aria-label="Close collect dialog"
+            aria-label="关闭核销弹窗"
             onClick={() => !collecting && setCollectPlan(null)}
           />
           <form
             onSubmit={submitCollect}
             className="relative z-10 w-full max-w-md rounded-xl border border-white/15 bg-slate-950 p-5"
           >
-            <h4 className="text-base font-semibold">Collect Repayment</h4>
+            <h4 className="text-base font-semibold">核销回款</h4>
             <p className="mt-1 text-xs text-slate-300">
-              Period #{collectPlan.periodIndex} · {formatCurrency(collectPlan.totalDue)}
+              第 {collectPlan.periodIndex} 期 · 应收 {formatCurrency(collectPlan.totalDue)}
             </p>
 
             <label className="mt-4 block">
-              <span className="mb-1 block text-xs text-slate-300">Account *</span>
+              <span className="mb-1 block text-xs text-slate-300">收款账户 *</span>
               <select
                 value={accountId}
                 onChange={(e) => setAccountId(e.target.value)}
                 className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                 required
               >
-                <option value="">Select account</option>
+                <option value="">请选择账户</option>
                 {accounts.map((account) => (
                   <option key={account.id} value={account.id}>
-                    {account.name} ({account.type})
+                    {account.name}（{formatAccountType(account.type)}）
                   </option>
                 ))}
               </select>
             </label>
 
             <label className="mt-3 block">
-              <span className="mb-1 block text-xs text-slate-300">Occurred At *</span>
+              <span className="mb-1 block text-xs text-slate-300">发生时间 *</span>
               <input
                 type="datetime-local"
                 value={occurredAt}
@@ -484,14 +504,14 @@ export default function OrderDetailPage() {
                 disabled={collecting}
                 className="rounded-md border border-white/20 px-3 py-1.5 text-xs text-slate-200 disabled:opacity-50"
               >
-                Cancel
+                取消
               </button>
               <button
                 type="submit"
                 disabled={collecting}
                 className="rounded-md border border-cyan-300/60 bg-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100 disabled:opacity-50"
               >
-                {collecting ? "Collecting..." : "Confirm Collect"}
+                {collecting ? "核销中..." : "确认核销"}
               </button>
             </div>
           </form>

@@ -36,7 +36,7 @@ export function DonutChart({ title, items, valueFormatter }: DonutChartProps) {
       </div>
 
       {items.length === 0 ? (
-        <p className="text-sm text-slate-300">No composition data.</p>
+        <p className="text-sm text-slate-300">暂无构成数据。</p>
       ) : (
         <div className="grid grid-cols-[120px_1fr] gap-3">
           <div className="flex items-center justify-center">

@@ -19,7 +19,7 @@ export function BarChart({ title, items, valueFormatter }: BarChartProps) {
       <h3 className="mb-3 text-sm font-semibold text-slate-100">{title}</h3>
 
       {items.length === 0 ? (
-        <p className="text-sm text-slate-300">No due structure data.</p>
+        <p className="text-sm text-slate-300">暂无到期结构数据。</p>
       ) : (
         <div className="space-y-2">
           <div className="grid h-36 grid-cols-7 items-end gap-2 rounded-lg border border-white/10 bg-slate-950/50 p-2">

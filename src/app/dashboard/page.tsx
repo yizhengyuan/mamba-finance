@@ -77,6 +77,10 @@ function fmtDate(value: string): string {
   });
 }
 
+function planStatusLabel(status: DashboardPlanItem["status"]): string {
+  return status === "overdue" ? "逾期" : "待收";
+}
+
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [charts, setCharts] = useState<DashboardCharts | null>(null);
@@ -111,13 +115,13 @@ export default function DashboardPage() {
         };
 
         if (!summaryResponse.ok) {
-          throw new Error(summaryBody.message ?? "Failed to load dashboard");
+          throw new Error(summaryBody.message ?? "加载看板失败");
         }
         if (!chartResponse.ok) {
-          throw new Error(chartBody.message ?? "Failed to load dashboard charts");
+          throw new Error(chartBody.message ?? "加载图表失败");
         }
         if (!briefResponse.ok) {
-          throw new Error(briefBody.message ?? "Failed to load daily brief");
+          throw new Error(briefBody.message ?? "加载每日简报失败");
         }
 
         if (!cancelled) {
@@ -127,7 +131,7 @@ export default function DashboardPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load dashboard");
+          setError(err instanceof Error ? err.message : "加载看板失败");
           setSummary(null);
           setCharts(null);
           setBrief(null);
@@ -149,48 +153,48 @@ export default function DashboardPage() {
   return (
     <section className="space-y-4">
       <header className="rounded-2xl border border-white/10 bg-black/25 p-6 backdrop-blur">
-        <h2 className="text-xl font-semibold">Dashboard</h2>
+        <h2 className="text-xl font-semibold">经营看板</h2>
         <p className="mt-1 text-sm text-slate-300">
-          Today due/overdue snapshot and financial KPI summary.
+          今日到期/逾期快照与核心经营指标汇总。
         </p>
       </header>
 
-      {loading ? <p className="text-sm text-slate-300">Loading dashboard...</p> : null}
+      {loading ? <p className="text-sm text-slate-300">看板加载中...</p> : null}
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
 
       {!loading && !error && summary ? (
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <MetricCard label="Total Assets" value={money(summary.metrics.totalAssets)} />
+            <MetricCard label="总资产" value={money(summary.metrics.totalAssets)} />
             <MetricCard
-              label="Outstanding Principal"
+              label="待回本金"
               value={money(summary.metrics.outstandingPrincipal)}
             />
             <MetricCard
-              label="Monthly Expected Interest"
+              label="本月预计利息"
               value={money(summary.metrics.monthlyExpectedInterest)}
             />
             <MetricCard
-              label="Today Due Count"
+              label="今日到期笔数"
               value={`${summary.metrics.todayDueCount}`}
               sub={money(summary.metrics.todayDueAmount)}
             />
             <MetricCard
-              label="Overdue Count"
+              label="逾期笔数"
               value={`${summary.metrics.overdueCount}`}
               sub={money(summary.metrics.overdueAmount)}
             />
             <MetricCard
-              label="Health"
-              value={summary.metrics.overdueCount > 0 ? "ATTENTION" : "NORMAL"}
-              sub={summary.metrics.overdueCount > 0 ? "Check overdue list" : "No overdue loans"}
+              label="健康状态"
+              value={summary.metrics.overdueCount > 0 ? "需关注" : "正常"}
+              sub={summary.metrics.overdueCount > 0 ? "请尽快处理逾期项" : "暂无逾期订单"}
             />
           </div>
 
           {charts ? (
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
               <LineChart
-                title="Asset Trend (30d)"
+                title="资产趋势（30天）"
                 points={charts.assetTrend.map((point) => ({
                   label: point.date,
                   value: point.totalAssets,
@@ -198,7 +202,7 @@ export default function DashboardPage() {
                 valueFormatter={money}
               />
               <DonutChart
-                title="Asset Composition"
+                title="资产构成"
                 items={charts.assetComposition.map((point) => ({
                   label: point.name,
                   value: point.currentBalance,
@@ -207,7 +211,7 @@ export default function DashboardPage() {
               />
               <div className="xl:col-span-2">
                 <BarChart
-                  title="Due Structure (Next 7d)"
+                  title="未来7天到期结构"
                   items={charts.dueStructure.map((point) => ({
                     label: point.date,
                     value: point.dueAmount,
@@ -234,8 +238,8 @@ export default function DashboardPage() {
           ) : null}
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <PlanPanel title="Today Due" items={summary.todayDuePlans} emptyText="No due items today." />
-            <PlanPanel title="Overdue" items={summary.overduePlans} emptyText="No overdue items." />
+            <PlanPanel title="今日到期" items={summary.todayDuePlans} emptyText="今日暂无到期项。" />
+            <PlanPanel title="逾期项" items={summary.overduePlans} emptyText="暂无逾期项。" />
           </div>
         </>
       ) : null}
@@ -288,14 +292,14 @@ function PlanPanel({
               </div>
               <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
                 <span>{fmtDate(plan.dueDate)}</span>
-                <span className="uppercase tracking-wide">{plan.status}</span>
+                <span className="uppercase tracking-wide">{planStatusLabel(plan.status)}</span>
               </div>
               <div className="mt-2">
                 <Link
                   href={`/orders/${plan.order.id}`}
                   className="text-xs text-cyan-200 underline underline-offset-2"
                 >
-                  Open order
+                  查看订单
                 </Link>
               </div>
             </div>

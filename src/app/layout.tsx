@@ -3,8 +3,8 @@ import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Mamba Finance",
-  description: "AI-driven asset and receivables management",
+  title: "Mamba Finance 资产中台",
+  description: "面向借贷业务的资产与债权管理系统",
 };
 
 export default function RootLayout({

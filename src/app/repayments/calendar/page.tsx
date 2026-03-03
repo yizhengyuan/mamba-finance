@@ -94,7 +94,7 @@ function defaultOccurredAtLocal(): string {
   return new Date(now.getTime() - offset).toISOString().slice(0, 16);
 }
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 
 export default function RepaymentCalendarPage() {
   const [month, setMonth] = useState(() => toMonthKey(new Date()));
@@ -140,7 +140,7 @@ export default function RepaymentCalendarPage() {
         };
 
         if (!response.ok) {
-          throw new Error(body.message ?? "Failed to load calendar");
+          throw new Error(body.message ?? "加载还款日历失败");
         }
 
         if (!cancelled) {
@@ -156,7 +156,7 @@ export default function RepaymentCalendarPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load calendar");
+          setError(err instanceof Error ? err.message : "加载还款日历失败");
           setData(null);
         }
       } finally {
@@ -225,12 +225,12 @@ export default function RepaymentCalendarPage() {
     }
 
     if (!accountId) {
-      setCollectError("Please select an account");
+      setCollectError("请选择收款账户");
       return;
     }
 
     if (!occurredAt) {
-      setCollectError("Please choose occurred time");
+      setCollectError("请选择发生时间");
       return;
     }
 
@@ -245,18 +245,18 @@ export default function RepaymentCalendarPage() {
           accountId,
           amount: collectPlan.totalDue,
           occurredAt: new Date(occurredAt).toISOString(),
-          note: `Calendar collect period ${collectPlan.periodIndex}`,
+          note: `日历核销 第${collectPlan.periodIndex}期`,
         }),
       });
       const body = (await response.json()) as { message?: string };
       if (!response.ok) {
-        throw new Error(body.message ?? "Failed to collect repayment");
+        throw new Error(body.message ?? "核销回款失败");
       }
 
       setCollectPlan(null);
       setRefreshTick((tick) => tick + 1);
     } catch (err) {
-      setCollectError(err instanceof Error ? err.message : "Failed to collect repayment");
+      setCollectError(err instanceof Error ? err.message : "核销回款失败");
     } finally {
       setCollecting(false);
     }
@@ -265,9 +265,9 @@ export default function RepaymentCalendarPage() {
   return (
     <section className="space-y-4">
       <header className="rounded-2xl border border-white/10 bg-black/25 p-6 backdrop-blur">
-        <h2 className="text-xl font-semibold">Repayment Calendar</h2>
+        <h2 className="text-xl font-semibold">还款日历</h2>
         <p className="mt-1 text-sm text-slate-300">
-          Monthly due distribution and same-day repayment task list.
+          查看月度到期分布，并在同日任务抽屉中直接核销回款。
         </p>
       </header>
 
@@ -275,7 +275,7 @@ export default function RepaymentCalendarPage() {
         <section className="rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur">
           <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-[160px_1fr_auto]">
             <label className="text-xs text-slate-300">
-              <span className="mb-1 block">Status</span>
+              <span className="mb-1 block">状态</span>
               <select
                 value={status}
                 onChange={(event) =>
@@ -284,15 +284,15 @@ export default function RepaymentCalendarPage() {
                 data-testid="calendar-status-filter"
                 className="w-full rounded-md border border-white/15 bg-black/30 px-2 py-2 text-sm text-slate-100 outline-none"
               >
-                <option value="all">all</option>
-                <option value="pending">pending</option>
-                <option value="paid">paid</option>
-                <option value="overdue">overdue</option>
+                <option value="all">全部</option>
+                <option value="pending">待收</option>
+                <option value="paid">已收</option>
+                <option value="overdue">逾期</option>
               </select>
             </label>
 
             <label className="text-xs text-slate-300">
-              <span className="mb-1 block">Borrower Keyword</span>
+              <span className="mb-1 block">借款人关键词</span>
               <input
                 value={keywordInput}
                 onChange={(event) => setKeywordInput(event.target.value)}
@@ -301,7 +301,7 @@ export default function RepaymentCalendarPage() {
                     setKeyword(keywordInput.trim());
                   }
                 }}
-                placeholder="e.g. 张三"
+                placeholder="例如：张三"
                 data-testid="calendar-keyword-input"
                 className="w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500"
               />
@@ -314,7 +314,7 @@ export default function RepaymentCalendarPage() {
                 data-testid="calendar-search-button"
                 className="rounded-md border border-white/15 px-3 py-2 text-xs text-slate-100 transition hover:bg-white/10"
               >
-                Search
+                搜索
               </button>
               <button
                 type="button"
@@ -325,7 +325,7 @@ export default function RepaymentCalendarPage() {
                 }}
                 className="rounded-md border border-white/15 px-3 py-2 text-xs text-slate-300 transition hover:bg-white/10"
               >
-                Reset
+                重置
               </button>
             </div>
           </div>
@@ -336,7 +336,7 @@ export default function RepaymentCalendarPage() {
               onClick={() => setMonth((current) => shiftMonth(current, -1))}
               className="rounded-md border border-white/15 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-white/10"
             >
-              Prev
+              上月
             </button>
             <p className="text-base font-semibold">{monthTitle(month)}</p>
             <button
@@ -344,7 +344,7 @@ export default function RepaymentCalendarPage() {
               onClick={() => setMonth((current) => shiftMonth(current, 1))}
               className="rounded-md border border-white/15 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-white/10"
             >
-              Next
+              下月
             </button>
           </div>
 
@@ -359,15 +359,21 @@ export default function RepaymentCalendarPage() {
             ))}
           </div>
 
-          {loading ? <p className="text-sm text-slate-300">Loading calendar...</p> : null}
+          {loading ? <p className="text-sm text-slate-300">日历加载中...</p> : null}
           {error ? <p className="text-sm text-rose-300">{error}</p> : null}
           {!loading && !error && data ? (
             <p className="mb-3 text-xs text-slate-400">
-              Active filter: status=
+              当前筛选：状态=
               <span className="text-slate-200">
-                {data.filters?.status ?? "all"}
+                {data.filters?.status === "pending"
+                  ? "待收"
+                  : data.filters?.status === "paid"
+                    ? "已收"
+                    : data.filters?.status === "overdue"
+                      ? "逾期"
+                      : "全部"}
               </span>
-              , keyword=
+              ，关键词=
               <span className="text-slate-200">
                 {data.filters?.keyword ?? "-"}
               </span>
@@ -390,11 +396,11 @@ export default function RepaymentCalendarPage() {
                     }`}
                   >
                     <p className="text-xs text-slate-300">{cell.date.slice(-2)}</p>
-                    <p className="mt-1 text-[11px] text-slate-200">Due {cell.dueCount}</p>
+                    <p className="mt-1 text-[11px] text-slate-200">到期 {cell.dueCount}</p>
                     <p className="text-[11px] text-cyan-200">{money(cell.dueAmount)}</p>
                     {cell.overdueCount > 0 ? (
                       <p className="mt-1 text-[11px] text-rose-300">
-                        Overdue {cell.overdueCount}
+                        逾期 {cell.overdueCount}
                       </p>
                     ) : null}
                   </button>
@@ -410,17 +416,17 @@ export default function RepaymentCalendarPage() {
         </section>
 
         <aside className="rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur">
-          <h3 className="text-base font-semibold">Day Task Drawer</h3>
+          <h3 className="text-base font-semibold">当日任务抽屉</h3>
           <p className="mt-1 text-xs text-slate-400">
-            {selectedDay ? dayTitle(selectedDay.date) : "Select a date in the calendar"}
+            {selectedDay ? dayTitle(selectedDay.date) : "请先在日历中选择一个日期"}
           </p>
 
           {!selectedDay ? (
             <p className="mt-4 text-sm text-slate-300">
-              No day selected. Click any date cell to view repayment plans.
+              暂未选择日期，请点击任一日期查看当日计划。
             </p>
           ) : selectedDay.plans.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-300">No plans on this day.</p>
+            <p className="mt-4 text-sm text-slate-300">该日暂无计划。</p>
           ) : (
             <div className="mt-4 space-y-2">
               {selectedDay.plans.map((plan) => (
@@ -432,13 +438,13 @@ export default function RepaymentCalendarPage() {
                   <p className="mt-1 text-xs font-mono text-slate-400">{plan.order.orderNo}</p>
                   <p className="mt-2 text-sm text-cyan-200">{money(plan.totalDue)}</p>
                   <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
-                    <span>Period {plan.periodIndex}</span>
+                    <span>第 {plan.periodIndex} 期</span>
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/orders/${plan.order.id}`}
                         className="text-cyan-200 underline underline-offset-2"
                       >
-                        Open order
+                        查看订单
                       </Link>
                       {plan.status !== "paid" ? (
                         <button
@@ -451,10 +457,10 @@ export default function RepaymentCalendarPage() {
                           data-testid={`calendar-drawer-collect-${plan.id}`}
                           className="rounded-md border border-cyan-300/60 px-2 py-1 text-[11px] text-cyan-100 hover:bg-cyan-300/20"
                         >
-                          Collect
+                          核销
                         </button>
                       ) : (
-                        <span className="text-[11px] text-slate-500">Settled</span>
+                        <span className="text-[11px] text-slate-500">已结清</span>
                       )}
                     </div>
                   </div>
@@ -466,11 +472,11 @@ export default function RepaymentCalendarPage() {
           {data ? (
             <div className="mt-4 rounded-lg border border-white/10 bg-black/20 p-3 text-xs text-slate-300">
               <p>
-                Month Due: <span className="text-slate-100">{data.summary.dueCount}</span> (
+                本月到期：<span className="text-slate-100">{data.summary.dueCount}</span> (
                 {money(data.summary.dueAmount)})
               </p>
               <p className="mt-1">
-                Month Overdue:{" "}
+                本月逾期：{" "}
                 <span className="text-rose-300">{data.summary.overdueCount}</span> (
                 {money(data.summary.overdueAmount)})
               </p>
@@ -484,21 +490,21 @@ export default function RepaymentCalendarPage() {
           <button
             type="button"
             className="absolute inset-0"
-            aria-label="Close collect dialog"
+            aria-label="关闭核销弹窗"
             onClick={() => !collecting && setCollectPlan(null)}
           />
           <form
             onSubmit={submitCollect}
             className="relative z-10 w-full max-w-md rounded-xl border border-white/15 bg-slate-950 p-5"
           >
-            <h4 className="text-base font-semibold">Collect Repayment</h4>
+            <h4 className="text-base font-semibold">核销回款</h4>
             <p className="mt-1 text-xs text-slate-300">
-              {collectPlan.order.borrowerName} · Period #{collectPlan.periodIndex}
+              {collectPlan.order.borrowerName} · 第 {collectPlan.periodIndex} 期
             </p>
             <p className="text-xs text-cyan-200">{money(collectPlan.totalDue)}</p>
 
             <label className="mt-4 block">
-              <span className="mb-1 block text-xs text-slate-300">Account *</span>
+              <span className="mb-1 block text-xs text-slate-300">收款账户 *</span>
               <select
                 value={accountId}
                 onChange={(event) => setAccountId(event.target.value)}
@@ -506,7 +512,7 @@ export default function RepaymentCalendarPage() {
                 className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                 required
               >
-                <option value="">Select account</option>
+                <option value="">请选择账户</option>
                 {accounts.map((account) => (
                   <option key={account.id} value={account.id}>
                     {account.name} ({account.type})
@@ -516,7 +522,7 @@ export default function RepaymentCalendarPage() {
             </label>
 
             <label className="mt-3 block">
-              <span className="mb-1 block text-xs text-slate-300">Occurred At *</span>
+              <span className="mb-1 block text-xs text-slate-300">发生时间 *</span>
               <input
                 type="datetime-local"
                 value={occurredAt}
@@ -534,7 +540,7 @@ export default function RepaymentCalendarPage() {
                 onClick={() => !collecting && setCollectPlan(null)}
                 className="rounded-md border border-white/20 px-3 py-1.5 text-xs text-slate-300 hover:bg-white/10"
               >
-                Cancel
+                取消
               </button>
               <button
                 type="submit"
@@ -542,7 +548,7 @@ export default function RepaymentCalendarPage() {
                 data-testid="calendar-collect-confirm-button"
                 className="rounded-md border border-cyan-300/60 bg-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100 hover:bg-cyan-300/30 disabled:opacity-50"
               >
-                {collecting ? "Collecting..." : "Confirm Collect"}
+                {collecting ? "核销中..." : "确认核销"}
               </button>
             </div>
           </form>

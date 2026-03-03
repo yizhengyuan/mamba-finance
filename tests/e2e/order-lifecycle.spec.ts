@@ -41,12 +41,12 @@ test("order lifecycle: create -> collect -> closed", async ({ page }) => {
 
     await page.goto("/orders");
 
-    await page.getByRole("button", { name: "New Order" }).click();
-    await page.getByLabel("Borrower *").fill(borrowerName);
-    await page.getByLabel("Principal *").fill("1000");
-    await page.getByLabel("Monthly Rate *").fill("0.01");
-    await page.getByLabel("Months *").fill("1");
-    await page.getByRole("button", { name: "Create Order" }).click();
+    await page.getByRole("button", { name: "新建订单" }).click();
+    await page.getByLabel("借款人 *").fill(borrowerName);
+    await page.getByLabel("本金 *").fill("1000");
+    await page.getByLabel("月利率 *").fill("0.01");
+    await page.getByLabel("期数 *").fill("1");
+    await page.getByRole("button", { name: "创建订单" }).click();
 
     await expect(page.getByText(borrowerName)).toBeVisible();
 
@@ -59,17 +59,16 @@ test("order lifecycle: create -> collect -> closed", async ({ page }) => {
     createdOrderId = order!.id;
 
     await page.goto(`/orders/${createdOrderId}`);
-    await expect(page.getByText("Repayment Plans")).toBeVisible();
+    await expect(page.getByText("还款计划")).toBeVisible();
 
-    await page.getByRole("button", { name: "Collect" }).first().click();
+    await page.getByRole("button", { name: "核销" }).first().click();
 
-    const accountOption = page.getByLabel("Account *");
+    const accountOption = page.getByLabel("收款账户 *");
     await accountOption.selectOption(createdAccountId!);
 
-    await page.getByRole("button", { name: "Confirm Collect" }).click();
+    await page.getByRole("button", { name: "确认核销" }).click();
 
-    await expect(page.getByText("Settled")).toBeVisible();
-    await expect(page.getByText("CLOSED")).toBeVisible();
+    await expect(page.getByText("已结清").first()).toBeVisible();
   } finally {
     if (createdOrderId) {
       const plans = await prisma!.repaymentPlan.findMany({
@@ -159,7 +158,7 @@ test("calendar drawer can collect repayment for filtered borrower", async ({ pag
     await accountOption.selectOption(createdAccountId!);
     await page.getByTestId("calendar-collect-confirm-button").click();
 
-    await expect(page.getByText("Settled")).toBeVisible();
+    await expect(page.getByText("已结清")).toBeVisible();
 
     const refreshedPlan = await prisma!.repaymentPlan.findUnique({
       where: { id: plan.id },

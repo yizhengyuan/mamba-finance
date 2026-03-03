@@ -1,10 +1,10 @@
 import Link from "next/link";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/repayments/calendar", label: "Calendar" },
-  { href: "/accounts", label: "Accounts" },
-  { href: "/orders", label: "Orders" },
+  { href: "/dashboard", label: "看板" },
+  { href: "/repayments/calendar", label: "还款日历" },
+  { href: "/accounts", label: "账户" },
+  { href: "/orders", label: "订单" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -32,7 +32,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 px-4 py-4 sm:px-6 sm:py-6">
           <header className="mb-6 rounded-xl border border-white/10 bg-black/25 p-4 backdrop-blur">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-slate-300">Asset and receivables cockpit</p>
+              <p className="text-sm text-slate-300">资产与债权驾驶舱</p>
               <nav className="flex gap-2 md:hidden">
                 {navItems.map((item) => (
                   <Link

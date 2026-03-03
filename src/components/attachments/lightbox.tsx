@@ -70,7 +70,7 @@ export function AttachmentLightbox({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 sm:p-8">
       <button
         type="button"
-        aria-label="Close image preview"
+        aria-label="关闭图片预览"
         className="absolute inset-0"
         onClick={onClose}
       />
@@ -111,7 +111,7 @@ export function AttachmentLightbox({
             onClick={onPrev}
             className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-md border border-white/25 bg-black/50 px-2 py-2 text-xs text-white hover:bg-black/70"
           >
-            Prev
+            上一张
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -124,7 +124,7 @@ export function AttachmentLightbox({
             onClick={onNext}
             className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-md border border-white/25 bg-black/50 px-2 py-2 text-xs text-white hover:bg-black/70"
           >
-            Next
+            下一张
           </button>
         </div>
 
@@ -134,14 +134,14 @@ export function AttachmentLightbox({
             onClick={onPrev}
             className="rounded-md border border-white/25 px-2 py-2 text-white"
           >
-            Prev
+            上一张
           </button>
           <button
             type="button"
             onClick={onNext}
             className="rounded-md border border-white/25 px-2 py-2 text-white"
           >
-            Next
+            下一张
           </button>
           <button
             type="button"
@@ -149,14 +149,14 @@ export function AttachmentLightbox({
             onClick={() => onDelete?.()}
             className="rounded-md border border-rose-300/40 px-2 py-2 text-rose-200 disabled:opacity-50"
           >
-            {deleting ? "Deleting..." : "Delete"}
+            {deleting ? "删除中..." : "删除"}
           </button>
           <button
             type="button"
             onClick={onClose}
             className="rounded-md border border-white/25 px-2 py-2 text-white"
           >
-            Close
+            关闭
           </button>
         </div>
       </div>
@@ -166,7 +166,7 @@ export function AttachmentLightbox({
         className="absolute right-4 top-4 z-10 rounded-md border border-white/30 bg-black/30 px-3 py-1.5 text-xs text-white"
         onClick={onClose}
       >
-        Close
+        关闭
       </button>
     </div>
   );
