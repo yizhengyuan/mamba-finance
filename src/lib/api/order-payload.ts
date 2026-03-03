@@ -11,6 +11,8 @@ export interface CreateOrderInput {
   notes?: string;
 }
 
+export type OrderStatusFilter = "active" | "closed" | "overdue";
+
 function asObject(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -110,4 +112,20 @@ export function parseCreateOrderPayload(payload: unknown): CreateOrderInput {
     collateralDesc: parseOptionalString(obj.collateralDesc, "collateralDesc"),
     notes: parseOptionalString(obj.notes, "notes"),
   };
+}
+
+export function parseOrderStatusFilter(
+  value: string | null,
+): OrderStatusFilter | undefined {
+  if (value === null || value.trim() === "") {
+    return undefined;
+  }
+
+  if (value === "active" || value === "closed" || value === "overdue") {
+    return value;
+  }
+
+  throw new PayloadValidationError(
+    "status must be one of: active, closed, overdue",
+  );
 }
