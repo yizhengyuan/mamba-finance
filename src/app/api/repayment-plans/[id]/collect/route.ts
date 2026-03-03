@@ -1,8 +1,9 @@
 import { Prisma } from "@prisma/client";
-import { NextResponse } from "next/server";
 
+import { fail, ok } from "@/lib/api/http";
 import { parseCollectRepaymentPayload } from "@/lib/api/collect-payload";
 import { PayloadValidationError } from "@/lib/api/payload-validation-error";
+import { logApiError, logBusinessEvent } from "@/lib/observability/audit-log";
 import { prisma } from "@/lib/prisma";
 import {
   collectRepayment,
@@ -28,67 +29,51 @@ export async function POST(request: Request, context: RouteContext) {
       note: input.note,
     });
 
-    return NextResponse.json({ data: result });
+    logBusinessEvent("REPAYMENT_COLLECTED", {
+      planId: result.planId,
+      orderId: result.orderId,
+      transactionId: result.transactionId,
+      orderStatus: result.orderStatus,
+    });
+
+    return ok(result);
   } catch (error) {
     if (error instanceof SyntaxError) {
-      return NextResponse.json(
-        { error: "BAD_REQUEST", message: "invalid JSON body" },
-        { status: 400 },
-      );
+      return fail("BAD_REQUEST", "invalid JSON body", 400);
     }
 
     if (error instanceof PayloadValidationError) {
-      return NextResponse.json(
-        { error: "BAD_REQUEST", message: error.message },
-        { status: 400 },
-      );
+      return fail("BAD_REQUEST", error.message, 400);
     }
 
-    if (error instanceof CollectRepaymentError && error.code === "PLAN_NOT_FOUND") {
-      return NextResponse.json(
-        { error: "NOT_FOUND", message: error.message },
-        { status: 404 },
-      );
-    }
+    if (error instanceof CollectRepaymentError) {
+      if (error.code === "PLAN_NOT_FOUND" || error.code === "ACCOUNT_NOT_FOUND") {
+        return fail("NOT_FOUND", error.message, 404);
+      }
 
-    if (error instanceof CollectRepaymentError && error.code === "ACCOUNT_NOT_FOUND") {
-      return NextResponse.json(
-        { error: "NOT_FOUND", message: error.message },
-        { status: 404 },
-      );
-    }
+      if (error.code === "AMOUNT_MISMATCH") {
+        return fail("BAD_REQUEST", error.message, 400);
+      }
 
-    if (error instanceof CollectRepaymentError && error.code === "AMOUNT_MISMATCH") {
-      return NextResponse.json(
-        { error: "BAD_REQUEST", message: error.message },
-        { status: 400 },
-      );
-    }
-
-    if (error instanceof CollectRepaymentError && error.code === "PLAN_ALREADY_PAID") {
-      return NextResponse.json(
-        { error: "CONFLICT", message: error.message },
-        { status: 409 },
-      );
+      if (error.code === "PLAN_ALREADY_PAID") {
+        return fail("CONFLICT", error.message, 409);
+      }
     }
 
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
-      return NextResponse.json(
-        {
-          error: "CONFLICT",
-          message: "repayment plan already linked with another transaction",
-        },
-        { status: 409 },
+      return fail(
+        "CONFLICT",
+        "repayment plan already linked with another transaction",
+        409,
       );
     }
 
-    console.error(`POST /api/repayment-plans/${id}/collect failed`, error);
-    return NextResponse.json(
-      { error: "INTERNAL_SERVER_ERROR", message: "Failed to collect repayment" },
-      { status: 500 },
-    );
+    logApiError(`POST /api/repayment-plans/${id}/collect`, error, {
+      repaymentPlanId: id,
+    });
+    return fail("INTERNAL_SERVER_ERROR", "Failed to collect repayment", 500);
   }
 }

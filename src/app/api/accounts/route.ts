@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
-
 import {
   parseCreateAccountPayload,
   PayloadValidationError,
 } from "@/lib/api/account-payload";
+import { fail, ok } from "@/lib/api/http";
+import { logApiError, logBusinessEvent } from "@/lib/observability/audit-log";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -12,13 +12,10 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ data: accounts });
+    return ok(accounts);
   } catch (error) {
-    console.error("GET /api/accounts failed", error);
-    return NextResponse.json(
-      { error: "INTERNAL_SERVER_ERROR", message: "Failed to fetch accounts" },
-      { status: 500 },
-    );
+    logApiError("GET /api/accounts", error);
+    return fail("INTERNAL_SERVER_ERROR", "Failed to fetch accounts", 500);
   }
 }
 
@@ -37,32 +34,23 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ data: account }, { status: 201 });
+    logBusinessEvent("ACCOUNT_CREATED", {
+      accountId: account.id,
+      accountType: account.type,
+      openingBalance: Number(account.openingBalance),
+    });
+
+    return ok(account, 201);
   } catch (error) {
     if (error instanceof SyntaxError) {
-      return NextResponse.json(
-        {
-          error: "BAD_REQUEST",
-          message: "invalid JSON body",
-        },
-        { status: 400 },
-      );
+      return fail("BAD_REQUEST", "invalid JSON body", 400);
     }
 
     if (error instanceof PayloadValidationError) {
-      return NextResponse.json(
-        {
-          error: "BAD_REQUEST",
-          message: error.message,
-        },
-        { status: 400 },
-      );
+      return fail("BAD_REQUEST", error.message, 400);
     }
 
-    console.error("POST /api/accounts failed", error);
-    return NextResponse.json(
-      { error: "INTERNAL_SERVER_ERROR", message: "Failed to create account" },
-      { status: 500 },
-    );
+    logApiError("POST /api/accounts", error);
+    return fail("INTERNAL_SERVER_ERROR", "Failed to create account", 500);
   }
 }

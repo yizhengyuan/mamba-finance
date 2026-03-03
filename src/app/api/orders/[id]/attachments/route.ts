@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-
+import { fail, ok } from "@/lib/api/http";
 import { PayloadValidationError } from "@/lib/api/payload-validation-error";
+import { logApiError, logBusinessEvent } from "@/lib/observability/audit-log";
 import { prisma } from "@/lib/prisma";
 import {
   parseAttachmentUploadFormData,
@@ -23,10 +23,7 @@ export async function POST(request: Request, context: RouteContext) {
     });
 
     if (!order) {
-      return NextResponse.json(
-        { error: "NOT_FOUND", message: `order not found: ${orderId}` },
-        { status: 404 },
-      );
+      return fail("NOT_FOUND", `order not found: ${orderId}`, 404);
     }
 
     const formData = await request.formData();
@@ -45,23 +42,24 @@ export async function POST(request: Request, context: RouteContext) {
       },
     });
 
-    return NextResponse.json({ data: attachment }, { status: 201 });
+    logBusinessEvent("ORDER_ATTACHMENT_UPLOADED", {
+      orderId,
+      attachmentId: attachment.id,
+      category: attachment.category,
+      sizeBytes: Number(attachment.sizeBytes),
+    });
+
+    return ok(attachment, 201);
   } catch (error) {
     if (savedFileUrl) {
       await deleteAttachmentFileByUrl(savedFileUrl);
     }
 
     if (error instanceof PayloadValidationError) {
-      return NextResponse.json(
-        { error: "BAD_REQUEST", message: error.message },
-        { status: 400 },
-      );
+      return fail("BAD_REQUEST", error.message, 400);
     }
 
-    console.error(`POST /api/orders/${orderId}/attachments failed`, error);
-    return NextResponse.json(
-      { error: "INTERNAL_SERVER_ERROR", message: "Failed to upload attachment" },
-      { status: 500 },
-    );
+    logApiError(`POST /api/orders/${orderId}/attachments`, error, { orderId });
+    return fail("INTERNAL_SERVER_ERROR", "Failed to upload attachment", 500);
   }
 }

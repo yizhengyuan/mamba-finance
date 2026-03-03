@@ -1,10 +1,11 @@
 import { Prisma } from "@prisma/client";
-import { NextResponse } from "next/server";
 
 import {
   parseUpdateAccountPayload,
   PayloadValidationError,
 } from "@/lib/api/account-payload";
+import { fail, ok } from "@/lib/api/http";
+import { logApiError, logBusinessEvent } from "@/lib/observability/audit-log";
 import { prisma } from "@/lib/prisma";
 
 interface RouteContext {
@@ -27,42 +28,30 @@ export async function PATCH(request: Request, context: RouteContext) {
       },
     });
 
-    return NextResponse.json({ data: account });
+    logBusinessEvent("ACCOUNT_UPDATED", {
+      accountId: account.id,
+      accountType: account.type,
+      isActive: account.isActive,
+    });
+
+    return ok(account);
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2025"
     ) {
-      return NextResponse.json(
-        { error: "NOT_FOUND", message: `account not found: ${id}` },
-        { status: 404 },
-      );
+      return fail("NOT_FOUND", `account not found: ${id}`, 404);
     }
 
     if (error instanceof SyntaxError) {
-      return NextResponse.json(
-        {
-          error: "BAD_REQUEST",
-          message: "invalid JSON body",
-        },
-        { status: 400 },
-      );
+      return fail("BAD_REQUEST", "invalid JSON body", 400);
     }
 
     if (error instanceof PayloadValidationError) {
-      return NextResponse.json(
-        {
-          error: "BAD_REQUEST",
-          message: error.message,
-        },
-        { status: 400 },
-      );
+      return fail("BAD_REQUEST", error.message, 400);
     }
 
-    console.error(`PATCH /api/accounts/${id} failed`, error);
-    return NextResponse.json(
-      { error: "INTERNAL_SERVER_ERROR", message: "Failed to update account" },
-      { status: 500 },
-    );
+    logApiError(`PATCH /api/accounts/${id}`, error, { accountId: id });
+    return fail("INTERNAL_SERVER_ERROR", "Failed to update account", 500);
   }
 }

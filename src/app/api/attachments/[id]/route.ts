@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-
+import { fail, ok } from "@/lib/api/http";
+import { logApiError, logBusinessEvent } from "@/lib/observability/audit-log";
 import { prisma } from "@/lib/prisma";
 import { deleteAttachmentFileByUrl } from "@/lib/storage/attachment-storage";
 
@@ -20,21 +20,18 @@ export async function DELETE(_request: Request, context: RouteContext) {
     });
 
     if (!attachment) {
-      return NextResponse.json(
-        { error: "NOT_FOUND", message: `attachment not found: ${id}` },
-        { status: 404 },
-      );
+      return fail("NOT_FOUND", `attachment not found: ${id}`, 404);
     }
 
     await prisma.attachment.delete({ where: { id } });
     await deleteAttachmentFileByUrl(attachment.fileUrl);
 
-    return NextResponse.json({ data: { id, deleted: true } });
+    logBusinessEvent("ORDER_ATTACHMENT_DELETED", {
+      attachmentId: id,
+    });
+    return ok({ id, deleted: true });
   } catch (error) {
-    console.error(`DELETE /api/attachments/${id} failed`, error);
-    return NextResponse.json(
-      { error: "INTERNAL_SERVER_ERROR", message: "Failed to delete attachment" },
-      { status: 500 },
-    );
+    logApiError(`DELETE /api/attachments/${id}`, error, { attachmentId: id });
+    return fail("INTERNAL_SERVER_ERROR", "Failed to delete attachment", 500);
   }
 }

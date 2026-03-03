@@ -1,6 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { NextResponse } from "next/server";
-
+import { fail, ok } from "@/lib/api/http";
 import {
   parseCreateOrderPayload,
   parseOrderStatusFilter,
@@ -8,6 +7,7 @@ import {
 import { PayloadValidationError } from "@/lib/api/payload-validation-error";
 import { generateOrderNo } from "@/lib/domain/order-number";
 import { generateRepaymentPlans } from "@/lib/domain/repayment-plan-generator";
+import { logApiError, logBusinessEvent } from "@/lib/observability/audit-log";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
@@ -35,20 +35,14 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.json({ data: orders });
+    return ok(orders);
   } catch (error) {
     if (error instanceof PayloadValidationError) {
-      return NextResponse.json(
-        { error: "BAD_REQUEST", message: error.message },
-        { status: 400 },
-      );
+      return fail("BAD_REQUEST", error.message, 400);
     }
 
-    console.error("GET /api/orders failed", error);
-    return NextResponse.json(
-      { error: "INTERNAL_SERVER_ERROR", message: "Failed to fetch orders" },
-      { status: 500 },
-    );
+    logApiError("GET /api/orders", error);
+    return fail("INTERNAL_SERVER_ERROR", "Failed to fetch orders", 500);
   }
 }
 
@@ -104,39 +98,30 @@ export async function POST(request: Request) {
       };
     });
 
-    return NextResponse.json({ data: created }, { status: 201 });
+    logBusinessEvent("ORDER_CREATED", {
+      orderId: created.id,
+      orderNo: created.orderNo,
+      repaymentPlanCount: created.repaymentPlans.length,
+    });
+
+    return ok(created, 201);
   } catch (error) {
     if (error instanceof SyntaxError) {
-      return NextResponse.json(
-        { error: "BAD_REQUEST", message: "invalid JSON body" },
-        { status: 400 },
-      );
+      return fail("BAD_REQUEST", "invalid JSON body", 400);
     }
 
     if (error instanceof PayloadValidationError) {
-      return NextResponse.json(
-        { error: "BAD_REQUEST", message: error.message },
-        { status: 400 },
-      );
+      return fail("BAD_REQUEST", error.message, 400);
     }
 
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
-      return NextResponse.json(
-        {
-          error: "CONFLICT",
-          message: "generated orderNo conflicts, please retry",
-        },
-        { status: 409 },
-      );
+      return fail("CONFLICT", "generated orderNo conflicts, please retry", 409);
     }
 
-    console.error("POST /api/orders failed", error);
-    return NextResponse.json(
-      { error: "INTERNAL_SERVER_ERROR", message: "Failed to create order" },
-      { status: 500 },
-    );
+    logApiError("POST /api/orders", error);
+    return fail("INTERNAL_SERVER_ERROR", "Failed to create order", 500);
   }
 }
