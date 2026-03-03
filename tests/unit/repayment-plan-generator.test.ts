@@ -78,3 +78,67 @@ test("generateRepaymentPlans rounds to 2 decimals", () => {
   assert.equal(plans[0]?.interestDue, 164.6);
   assert.equal(plans[0]?.totalDue, 12510.27);
 });
+
+test("generateRepaymentPlans keeps end-of-month anchor across periods", () => {
+  const plans = generateRepaymentPlans({
+    principal: 8000,
+    monthlyRate: 0.0125,
+    startDate: new Date("2026-01-31T00:00:00.000Z"),
+    months: 3,
+  });
+
+  assert.deepEqual(
+    plans.map((p) => p.dueDate.toISOString().slice(0, 10)),
+    ["2026-02-28", "2026-03-31", "2026-04-30"],
+  );
+});
+
+test("addMonthsWithAnchor throws on invalid monthsToAdd", () => {
+  const start = new Date("2026-01-01T00:00:00.000Z");
+
+  assert.throws(
+    () => addMonthsWithAnchor(start, -1),
+    /monthsToAdd must be a non-negative integer/,
+  );
+  assert.throws(
+    () => addMonthsWithAnchor(start, 1.5),
+    /monthsToAdd must be a non-negative integer/,
+  );
+});
+
+test("generateRepaymentPlans validates principal/monthlyRate/months", () => {
+  const startDate = new Date("2026-03-01T00:00:00.000Z");
+
+  assert.throws(
+    () =>
+      generateRepaymentPlans({
+        principal: 0,
+        monthlyRate: 0.01,
+        startDate,
+        months: 1,
+      }),
+    /principal must be greater than 0/,
+  );
+
+  assert.throws(
+    () =>
+      generateRepaymentPlans({
+        principal: 1000,
+        monthlyRate: 0,
+        startDate,
+        months: 1,
+      }),
+    /monthlyRate must be between 0 and 1/,
+  );
+
+  assert.throws(
+    () =>
+      generateRepaymentPlans({
+        principal: 1000,
+        monthlyRate: 0.01,
+        startDate,
+        months: 0,
+      }),
+    /months must be an integer greater than or equal to 1/,
+  );
+});
