@@ -18,5 +18,7 @@ Mamba Finance 是一个面向借贷订单周期的资产与债权管理系统（
 ## 常用命令
 - `npm run lint`
 - `npm run build`
+- `npm run test:unit`
+- `npm run db:seed`
 - `npx prisma migrate dev`
 - `npx prisma studio`
