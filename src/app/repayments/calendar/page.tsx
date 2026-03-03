@@ -281,6 +281,7 @@ export default function RepaymentCalendarPage() {
                 onChange={(event) =>
                   setStatus(event.target.value as "all" | "pending" | "paid" | "overdue")
                 }
+                data-testid="calendar-status-filter"
                 className="w-full rounded-md border border-white/15 bg-black/30 px-2 py-2 text-sm text-slate-100 outline-none"
               >
                 <option value="all">all</option>
@@ -301,6 +302,7 @@ export default function RepaymentCalendarPage() {
                   }
                 }}
                 placeholder="e.g. 张三"
+                data-testid="calendar-keyword-input"
                 className="w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500"
               />
             </label>
@@ -309,6 +311,7 @@ export default function RepaymentCalendarPage() {
               <button
                 type="button"
                 onClick={() => setKeyword(keywordInput.trim())}
+                data-testid="calendar-search-button"
                 className="rounded-md border border-white/15 px-3 py-2 text-xs text-slate-100 transition hover:bg-white/10"
               >
                 Search
@@ -379,6 +382,7 @@ export default function RepaymentCalendarPage() {
                     key={cell.date}
                     type="button"
                     onClick={() => setSelectedDate(cell.date)}
+                    data-testid={`calendar-cell-${cell.date}`}
                     className={`min-h-[88px] rounded-lg border p-2 text-left transition ${
                       selectedDate === cell.date
                         ? "border-cyan-400/70 bg-cyan-500/15"
@@ -444,6 +448,7 @@ export default function RepaymentCalendarPage() {
                             setCollectError(null);
                             setOccurredAt(defaultOccurredAtLocal());
                           }}
+                          data-testid={`calendar-drawer-collect-${plan.id}`}
                           className="rounded-md border border-cyan-300/60 px-2 py-1 text-[11px] text-cyan-100 hover:bg-cyan-300/20"
                         >
                           Collect
@@ -497,6 +502,7 @@ export default function RepaymentCalendarPage() {
               <select
                 value={accountId}
                 onChange={(event) => setAccountId(event.target.value)}
+                data-testid="calendar-collect-account-select"
                 className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                 required
               >
@@ -533,6 +539,7 @@ export default function RepaymentCalendarPage() {
               <button
                 type="submit"
                 disabled={collecting}
+                data-testid="calendar-collect-confirm-button"
                 className="rounded-md border border-cyan-300/60 bg-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100 hover:bg-cyan-300/30 disabled:opacity-50"
               >
                 {collecting ? "Collecting..." : "Confirm Collect"}

@@ -111,7 +111,6 @@ function isPlanOverdue(
 
 function buildStatusWhere(
   status: RepaymentPlanStatusFilter | undefined,
-  now: Date,
 ): Prisma.RepaymentPlanWhereInput {
   if (!status) {
     return {};
@@ -120,7 +119,6 @@ function buildStatusWhere(
   if (status === "overdue") {
     return {
       status: { in: ["pending", "overdue"] },
-      dueDate: { lt: now },
     };
   }
 
@@ -192,12 +190,15 @@ export async function getCalendarRepayments(
   input: CalendarRepaymentInput,
   now: Date = new Date(),
 ): Promise<CalendarRepaymentResult> {
+  const dueDateEnd =
+    input.status === "overdue" && now < input.monthEnd ? now : input.monthEnd;
+
   const where: Prisma.RepaymentPlanWhereInput = {
     dueDate: {
       gte: input.monthStart,
-      lt: input.monthEnd,
+      lt: dueDateEnd,
     },
-    ...buildStatusWhere(input.status, now),
+    ...buildStatusWhere(input.status),
     ...(input.keyword
       ? {
           order: {
