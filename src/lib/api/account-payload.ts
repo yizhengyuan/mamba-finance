@@ -1,4 +1,7 @@
 import { AccountType } from "@prisma/client";
+import { PayloadValidationError } from "@/lib/api/payload-validation-error";
+
+export { PayloadValidationError } from "@/lib/api/payload-validation-error";
 
 export interface CreateAccountInput {
   name: string;
@@ -10,13 +13,6 @@ export interface UpdateAccountInput {
   name?: string;
   type?: AccountType;
   isActive?: boolean;
-}
-
-export class PayloadValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "PayloadValidationError";
-  }
 }
 
 const ACCOUNT_TYPES = new Set<AccountType>(Object.values(AccountType));
