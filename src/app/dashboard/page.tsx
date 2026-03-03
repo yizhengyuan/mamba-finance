@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { BarChart } from "@/components/charts/bar-chart";
+import { DonutChart } from "@/components/charts/donut-chart";
+import { LineChart } from "@/components/charts/line-chart";
+
 interface DashboardPlanItem {
   id: string;
   dueDate: string;
@@ -29,6 +33,24 @@ interface DashboardSummary {
   overduePlans: DashboardPlanItem[];
 }
 
+interface DashboardCharts {
+  range: "30d";
+  assetTrend: Array<{
+    date: string;
+    totalAssets: number;
+  }>;
+  assetComposition: Array<{
+    accountId: string;
+    name: string;
+    currentBalance: number;
+  }>;
+  dueStructure: Array<{
+    date: string;
+    dueCount: number;
+    dueAmount: number;
+  }>;
+}
+
 function money(value: number): string {
   return `¥${value.toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -51,6 +73,7 @@ function fmtDate(value: string): string {
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [charts, setCharts] = useState<DashboardCharts | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,22 +85,35 @@ export default function DashboardPage() {
       setError(null);
 
       try {
-        const response = await fetch("/api/dashboard/summary", { cache: "no-store" });
-        const body = (await response.json()) as {
+        const [summaryResponse, chartResponse] = await Promise.all([
+          fetch("/api/dashboard/summary", { cache: "no-store" }),
+          fetch("/api/dashboard/charts?range=30d", { cache: "no-store" }),
+        ]);
+        const summaryBody = (await summaryResponse.json()) as {
           data?: DashboardSummary;
           message?: string;
         };
+        const chartBody = (await chartResponse.json()) as {
+          data?: DashboardCharts;
+          message?: string;
+        };
 
-        if (!response.ok) {
-          throw new Error(body.message ?? "Failed to load dashboard");
+        if (!summaryResponse.ok) {
+          throw new Error(summaryBody.message ?? "Failed to load dashboard");
+        }
+        if (!chartResponse.ok) {
+          throw new Error(chartBody.message ?? "Failed to load dashboard charts");
         }
 
         if (!cancelled) {
-          setSummary(body.data ?? null);
+          setSummary(summaryBody.data ?? null);
+          setCharts(chartBody.data ?? null);
         }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load dashboard");
+          setSummary(null);
+          setCharts(null);
         }
       } finally {
         if (!cancelled) {
@@ -133,6 +169,38 @@ export default function DashboardPage() {
               sub={summary.metrics.overdueCount > 0 ? "Check overdue list" : "No overdue loans"}
             />
           </div>
+
+          {charts ? (
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <LineChart
+                title="Asset Trend (30d)"
+                points={charts.assetTrend.map((point) => ({
+                  label: point.date,
+                  value: point.totalAssets,
+                }))}
+                valueFormatter={money}
+              />
+              <DonutChart
+                title="Asset Composition"
+                items={charts.assetComposition.map((point) => ({
+                  label: point.name,
+                  value: point.currentBalance,
+                }))}
+                valueFormatter={money}
+              />
+              <div className="xl:col-span-2">
+                <BarChart
+                  title="Due Structure (Next 7d)"
+                  items={charts.dueStructure.map((point) => ({
+                    label: point.date,
+                    value: point.dueAmount,
+                    subValue: point.dueCount,
+                  }))}
+                  valueFormatter={money}
+                />
+              </div>
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <PlanPanel title="Today Due" items={summary.todayDuePlans} emptyText="No due items today." />
