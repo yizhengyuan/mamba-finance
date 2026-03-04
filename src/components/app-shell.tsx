@@ -5,6 +5,7 @@ const navItems = [
   { href: "/repayments/calendar", label: "还款日历" },
   { href: "/accounts", label: "账户" },
   { href: "/orders", label: "订单" },
+  { href: "/ui-lab", label: "设计实验室" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

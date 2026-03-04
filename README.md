@@ -39,6 +39,7 @@ Mamba Finance 是一个面向借贷订单周期的资产与债权管理系统（
    - Dashboard 可打开
    - Orders 页面可查看列表
    - Accounts 页面可查看账户
+   - 设计实验室可打开（`/ui-lab`）
 
 ## 一键启动与分享
 

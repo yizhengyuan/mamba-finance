@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { UIButton } from "@/components/ui/button";
+import { UIFormField, UIInput } from "@/components/ui/form-field";
+import { UIStatusBadge } from "@/components/ui/status-badge";
 
 type OrderStatus = "active" | "overdue" | "closed";
 
@@ -239,26 +242,23 @@ export default function OrdersPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {filters.map((filter) => (
-              <button
+              <UIButton
                 key={filter.label}
-                type="button"
                 onClick={() => setStatusFilter(filter.value)}
-                className={`rounded-md border px-3 py-1.5 text-xs transition ${
+                size="sm"
+                variant={statusFilter === filter.value ? "primary" : "ghost"}
+                className={`transition ${
                   statusFilter === filter.value
-                    ? "border-cyan-300 bg-cyan-400/20 text-cyan-100"
-                    : "border-white/20 text-slate-200 hover:bg-white/10"
+                    ? ""
+                    : "text-slate-200 hover:bg-white/10"
                 }`}
               >
                 {filter.label}
-              </button>
+              </UIButton>
             ))}
-            <button
-              type="button"
-              onClick={() => setDrawerOpen(true)}
-              className="ml-1 rounded-md border border-cyan-300/60 bg-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100 hover:bg-cyan-300/30"
-            >
+            <UIButton className="ml-1" size="sm" onClick={() => setDrawerOpen(true)}>
               新建订单
-            </button>
+            </UIButton>
           </div>
         </div>
 
@@ -296,8 +296,18 @@ export default function OrdersPage() {
                           ? `${formatDate(nextDue.dueDate)} (${formatCurrency(nextDue.totalDue)})`
                           : "-"}
                       </td>
-                      <td className="px-2 py-3 uppercase tracking-wide text-xs text-cyan-200">
-                        {orderStatusLabel(order.status)}
+                      <td className="px-2 py-3">
+                        <UIStatusBadge
+                          tone={
+                            order.status === "overdue"
+                              ? "overdue"
+                              : order.status === "closed"
+                                ? "paid"
+                                : "active"
+                          }
+                        >
+                          {orderStatusLabel(order.status)}
+                        </UIStatusBadge>
                       </td>
                       <td className="px-2 py-3">
                         <Link
@@ -332,129 +342,114 @@ export default function OrdersPage() {
                   一次提交将同时创建订单与还款计划。
                 </p>
               </div>
-              <button
+              <UIButton
                 type="button"
-                className="rounded-md border border-white/20 px-2 py-1 text-xs text-slate-200"
+                variant="ghost"
+                size="sm"
                 onClick={() => !creating && setDrawerOpen(false)}
               >
                 关闭
-              </button>
+              </UIButton>
             </div>
 
             <form className="space-y-4" onSubmit={submitCreateOrder}>
-              <label className="block">
-                <span className="mb-1 block text-xs text-slate-300">借款人 *</span>
-                <input
+              <UIFormField label="借款人" required>
+                <UIInput
                   value={form.borrowerName}
                   onChange={(e) => setForm((prev) => ({ ...prev, borrowerName: e.target.value }))}
-                  className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                   placeholder="请输入借款人姓名"
                   required
                 />
-              </label>
+              </UIFormField>
 
-              <label className="block">
-                <span className="mb-1 block text-xs text-slate-300">手机号</span>
-                <input
+              <UIFormField label="手机号">
+                <UIInput
                   value={form.borrowerPhone}
                   onChange={(e) => setForm((prev) => ({ ...prev, borrowerPhone: e.target.value }))}
-                  className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                   placeholder="13800000000"
                 />
-              </label>
+              </UIFormField>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <label className="block">
-                  <span className="mb-1 block text-xs text-slate-300">本金 *</span>
-                  <input
+                <UIFormField label="本金" required>
+                  <UIInput
                     type="number"
                     min="0"
                     step="0.01"
                     value={form.principal}
                     onChange={(e) => setForm((prev) => ({ ...prev, principal: e.target.value }))}
-                    className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                     placeholder="10000"
                     required
                   />
-                </label>
+                </UIFormField>
 
-                <label className="block">
-                  <span className="mb-1 block text-xs text-slate-300">月利率 *</span>
-                  <input
+                <UIFormField label="月利率" required>
+                  <UIInput
                     type="number"
                     min="0"
                     max="1"
                     step="0.0001"
                     value={form.monthlyRate}
                     onChange={(e) => setForm((prev) => ({ ...prev, monthlyRate: e.target.value }))}
-                    className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                     required
                   />
-                </label>
+                </UIFormField>
 
-                <label className="block">
-                  <span className="mb-1 block text-xs text-slate-300">起息日期 *</span>
-                  <input
+                <UIFormField label="起息日期" required>
+                  <UIInput
                     type="date"
                     value={form.startDate}
                     onChange={(e) => setForm((prev) => ({ ...prev, startDate: e.target.value }))}
-                    className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                     required
                   />
-                </label>
+                </UIFormField>
 
-                <label className="block">
-                  <span className="mb-1 block text-xs text-slate-300">期数 *</span>
-                  <input
+                <UIFormField label="期数" required>
+                  <UIInput
                     type="number"
                     min="1"
                     step="1"
                     value={form.months}
                     onChange={(e) => setForm((prev) => ({ ...prev, months: e.target.value }))}
-                    className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                     required
                   />
-                </label>
+                </UIFormField>
               </div>
 
-              <label className="block">
-                <span className="mb-1 block text-xs text-slate-300">抵押物描述</span>
-                <input
+              <UIFormField label="抵押物描述">
+                <UIInput
                   value={form.collateralDesc}
                   onChange={(e) => setForm((prev) => ({ ...prev, collateralDesc: e.target.value }))}
-                  className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                   placeholder="例如：黄金、手机等"
                 />
-              </label>
+              </UIFormField>
 
-              <label className="block">
-                <span className="mb-1 block text-xs text-slate-300">备注</span>
+              <UIFormField label="备注">
                 <textarea
                   value={form.notes}
                   onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
-                  className="min-h-24 w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
+                  className="min-h-24 w-full rounded-md border border-white/20 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-300/70 focus:outline-none"
                   placeholder="可选备注"
                 />
-              </label>
+              </UIFormField>
 
               {formError ? <p className="text-sm text-rose-300">{formError}</p> : null}
 
               <div className="flex justify-end gap-2 pt-2">
-                <button
+                <UIButton
                   type="button"
                   onClick={() => setDrawerOpen(false)}
                   disabled={creating}
-                  className="rounded-md border border-white/20 px-4 py-2 text-sm text-slate-200 disabled:opacity-50"
+                  variant="ghost"
                 >
                   取消
-                </button>
-                <button
+                </UIButton>
+                <UIButton
                   type="submit"
                   disabled={creating}
-                  className="rounded-md border border-cyan-300/60 bg-cyan-400/20 px-4 py-2 text-sm text-cyan-100 disabled:opacity-50"
                 >
                   {creating ? "创建中..." : "创建订单"}
-                </button>
+                </UIButton>
               </div>
             </form>
           </aside>

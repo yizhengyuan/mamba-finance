@@ -5,6 +5,9 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { AttachmentLightbox } from "@/components/attachments/lightbox";
+import { UIButton } from "@/components/ui/button";
+import { UIFormField, UIInput, UISelect } from "@/components/ui/form-field";
+import { UIStatusBadge } from "@/components/ui/status-badge";
 
 interface RepaymentPlanItem {
   id: string;
@@ -377,25 +380,35 @@ export default function OrderDetailPage() {
                         <td className="px-2 py-2">{formatCurrency(plan.interestDue)}</td>
                         <td className="px-2 py-2">{formatCurrency(plan.principalDue)}</td>
                         <td className="px-2 py-2">{formatCurrency(plan.totalDue)}</td>
-                        <td className="px-2 py-2 uppercase text-xs tracking-wide text-cyan-200">
-                          {planStatusLabel(plan.status)}
+                        <td className="px-2 py-2">
+                          <UIStatusBadge
+                            tone={
+                              plan.status === "overdue"
+                                ? "overdue"
+                                : plan.status === "paid"
+                                  ? "paid"
+                                  : "active"
+                            }
+                          >
+                            {planStatusLabel(plan.status)}
+                          </UIStatusBadge>
                         </td>
                         <td className="px-2 py-2">{formatDate(plan.paidAt)}</td>
                         <td className="px-2 py-2">
                           {plan.status === "paid" ? (
                             <span className="text-xs text-slate-400">已结清</span>
                           ) : (
-                            <button
+                            <UIButton
                               type="button"
+                              size="sm"
                               onClick={() => {
                                 setCollectPlan(plan);
                                 setCollectError(null);
                                 setOccurredAt(defaultOccurredAtLocal());
                               }}
-                              className="rounded-md border border-cyan-300/60 px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-300/20"
                             >
                               核销
-                            </button>
+                            </UIButton>
                           )}
                         </td>
                       </tr>
@@ -467,12 +480,10 @@ export default function OrderDetailPage() {
               第 {collectPlan.periodIndex} 期 · 应收 {formatCurrency(collectPlan.totalDue)}
             </p>
 
-            <label className="mt-4 block">
-              <span className="mb-1 block text-xs text-slate-300">收款账户 *</span>
-              <select
+            <UIFormField className="mt-4" label="收款账户" required>
+              <UISelect
                 value={accountId}
                 onChange={(e) => setAccountId(e.target.value)}
-                className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                 required
               >
                 <option value="">请选择账户</option>
@@ -481,38 +492,37 @@ export default function OrderDetailPage() {
                     {account.name}（{formatAccountType(account.type)}）
                   </option>
                 ))}
-              </select>
-            </label>
+              </UISelect>
+            </UIFormField>
 
-            <label className="mt-3 block">
-              <span className="mb-1 block text-xs text-slate-300">发生时间 *</span>
-              <input
+            <UIFormField className="mt-3" label="发生时间" required>
+              <UIInput
                 type="datetime-local"
                 value={occurredAt}
                 onChange={(e) => setOccurredAt(e.target.value)}
-                className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                 required
               />
-            </label>
+            </UIFormField>
 
             {collectError ? <p className="mt-3 text-sm text-rose-300">{collectError}</p> : null}
 
             <div className="mt-4 flex justify-end gap-2">
-              <button
+              <UIButton
                 type="button"
                 onClick={() => setCollectPlan(null)}
                 disabled={collecting}
-                className="rounded-md border border-white/20 px-3 py-1.5 text-xs text-slate-200 disabled:opacity-50"
+                size="sm"
+                variant="ghost"
               >
                 取消
-              </button>
-              <button
+              </UIButton>
+              <UIButton
                 type="submit"
                 disabled={collecting}
-                className="rounded-md border border-cyan-300/60 bg-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100 disabled:opacity-50"
+                size="sm"
               >
                 {collecting ? "核销中..." : "确认核销"}
-              </button>
+              </UIButton>
             </div>
           </form>
         </div>
@@ -571,7 +581,7 @@ function Info({
       className={`rounded-xl border border-white/10 bg-black/20 p-3 ${full ? "sm:col-span-2 lg:col-span-3" : ""}`}
     >
       <p className="text-xs text-slate-400">{label}</p>
-      <p className={`mt-1 text-sm text-slate-100 ${mono ? "font-mono" : ""}`}>{value}</p>
+      {value ? <p className={`mt-1 text-sm text-slate-100 ${mono ? "font-mono" : ""}`}>{value}</p> : null}
     </div>
   );
 }

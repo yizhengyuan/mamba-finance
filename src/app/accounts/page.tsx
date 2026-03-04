@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { UIButton } from "@/components/ui/button";
+import { UIFormField, UIInput, UISelect } from "@/components/ui/form-field";
+import { UIStatusBadge } from "@/components/ui/status-badge";
 
 type AccountType = "cash" | "bank_card" | "wechat" | "alipay" | "other";
 
@@ -186,13 +189,9 @@ export default function AccountsPage() {
             管理资金账户、账户类型与启用状态。
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          className="rounded-md border border-cyan-300/60 bg-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100 hover:bg-cyan-300/30"
-        >
+        <UIButton size="sm" onClick={() => setCreateOpen(true)}>
           新建账户
-        </button>
+        </UIButton>
       </div>
 
       {loading ? <p className="text-sm text-slate-300">账户加载中...</p> : null}
@@ -224,17 +223,15 @@ export default function AccountsPage() {
                   <td className="px-2 py-3">{account.currency}</td>
                   <td className="px-2 py-3">{money(account.openingBalance)}</td>
                   <td className="px-2 py-3">{money(account.currentBalance)}</td>
-                  <td className="px-2 py-3 text-xs uppercase tracking-wide text-cyan-200">
-                    {account.isActive ? "启用" : "停用"}
+                  <td className="px-2 py-3">
+                    <UIStatusBadge tone={account.isActive ? "active" : "draft"}>
+                      {account.isActive ? "启用" : "停用"}
+                    </UIStatusBadge>
                   </td>
                   <td className="px-2 py-3">
-                    <button
-                      type="button"
-                      onClick={() => openEdit(account)}
-                      className="rounded-md border border-white/20 px-2 py-1 text-xs hover:bg-white/10"
-                    >
+                    <UIButton type="button" variant="ghost" size="sm" onClick={() => openEdit(account)}>
                       编辑
-                    </button>
+                    </UIButton>
                   </td>
                 </tr>
               ))}
@@ -246,33 +243,31 @@ export default function AccountsPage() {
       {createOpen ? (
         <Modal title="新建账户" onClose={() => !createSubmitting && setCreateOpen(false)}>
           <form className="space-y-3" onSubmit={submitCreate}>
-            <Field label="名称 *">
-              <input
+            <UIFormField label="名称" required>
+              <UIInput
                 value={createForm.name}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
-                className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                 required
               />
-            </Field>
+            </UIFormField>
 
-            <Field label="类型 *">
-              <select
+            <UIFormField label="类型" required>
+              <UISelect
                 value={createForm.type}
                 onChange={(e) =>
                   setCreateForm((prev) => ({ ...prev, type: e.target.value as AccountType }))
                 }
-                className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
               >
                 {accountTypes.map((type) => (
                   <option key={type} value={type}>
                     {typeLabel(type)}
                   </option>
                 ))}
-              </select>
-            </Field>
+              </UISelect>
+            </UIFormField>
 
-            <Field label="期初余额 *">
-              <input
+            <UIFormField label="期初余额" required>
+              <UIInput
                 type="number"
                 min="0"
                 step="0.01"
@@ -280,29 +275,29 @@ export default function AccountsPage() {
                 onChange={(e) =>
                   setCreateForm((prev) => ({ ...prev, openingBalance: e.target.value }))
                 }
-                className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                 required
               />
-            </Field>
+            </UIFormField>
 
             {createError ? <p className="text-sm text-rose-300">{createError}</p> : null}
 
             <div className="flex justify-end gap-2 pt-2">
-              <button
+              <UIButton
                 type="button"
                 disabled={createSubmitting}
                 onClick={() => setCreateOpen(false)}
-                className="rounded-md border border-white/20 px-3 py-1.5 text-xs text-slate-200 disabled:opacity-50"
+                variant="ghost"
+                size="sm"
               >
                 取消
-              </button>
-              <button
+              </UIButton>
+              <UIButton
                 type="submit"
                 disabled={createSubmitting}
-                className="rounded-md border border-cyan-300/60 bg-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100 disabled:opacity-50"
+                size="sm"
               >
                 {createSubmitting ? "创建中..." : "创建"}
-              </button>
+              </UIButton>
             </div>
           </form>
         </Modal>
@@ -311,76 +306,65 @@ export default function AccountsPage() {
       {editing ? (
         <Modal title="编辑账户" onClose={() => !editSubmitting && setEditing(null)}>
           <form className="space-y-3" onSubmit={submitEdit}>
-            <Field label="名称 *">
-              <input
+            <UIFormField label="名称" required>
+              <UIInput
                 value={editForm.name}
                 onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
-                className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                 required
               />
-            </Field>
+            </UIFormField>
 
-            <Field label="类型 *">
-              <select
+            <UIFormField label="类型" required>
+              <UISelect
                 value={editForm.type}
                 onChange={(e) =>
                   setEditForm((prev) => ({ ...prev, type: e.target.value as AccountType }))
                 }
-                className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
               >
                 {accountTypes.map((type) => (
                   <option key={type} value={type}>
                     {typeLabel(type)}
                   </option>
                 ))}
-              </select>
-            </Field>
+              </UISelect>
+            </UIFormField>
 
-            <Field label="状态">
-              <select
+            <UIFormField label="状态">
+              <UISelect
                 value={editForm.isActive ? "active" : "inactive"}
                 onChange={(e) =>
                   setEditForm((prev) => ({ ...prev, isActive: e.target.value === "active" }))
                 }
-                className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
               >
                 <option value="active">启用</option>
                 <option value="inactive">停用</option>
-              </select>
-            </Field>
+              </UISelect>
+            </UIFormField>
 
             {editError ? <p className="text-sm text-rose-300">{editError}</p> : null}
 
             <div className="flex justify-end gap-2 pt-2">
-              <button
+              <UIButton
                 type="button"
                 disabled={editSubmitting}
                 onClick={() => setEditing(null)}
-                className="rounded-md border border-white/20 px-3 py-1.5 text-xs text-slate-200 disabled:opacity-50"
+                variant="ghost"
+                size="sm"
               >
                 取消
-              </button>
-              <button
+              </UIButton>
+              <UIButton
                 type="submit"
                 disabled={editSubmitting}
-                className="rounded-md border border-cyan-300/60 bg-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100 disabled:opacity-50"
+                size="sm"
               >
                 {editSubmitting ? "保存中..." : "保存"}
-              </button>
+              </UIButton>
             </div>
           </form>
         </Modal>
       ) : null}
     </section>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs text-slate-300">{label}</span>
-      {children}
-    </label>
   );
 }
 
@@ -407,7 +391,7 @@ function Modal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-white/20 px-2 py-1 text-xs text-slate-200"
+            className="rounded-md border border-white/20 px-2 py-1 text-xs text-slate-200 hover:bg-white/10"
           >
             关闭
           </button>

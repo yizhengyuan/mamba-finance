@@ -3,6 +3,20 @@
 :root {
   --background: #0a0f1c;
   --foreground: #e2e8f0;
+  --surface-1: #0f172a;
+  --surface-2: #111b31;
+  --surface-3: #17243d;
+  --border-soft: rgba(148, 163, 184, 0.24);
+  --text-dim: #94a3b8;
+  --brand: #22d3ee;
+  --brand-strong: #06b6d4;
+  --success: #34d399;
+  --warning: #f59e0b;
+  --danger: #fb7185;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-panel: 0 20px 50px rgba(2, 6, 23, 0.45);
 }
 
 @theme inline {
@@ -18,4 +32,11 @@ body {
   color: var(--foreground);
   font-family: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
   min-height: 100vh;
+}
+
+.ui-panel {
+  border: 1px solid var(--border-soft);
+  background: linear-gradient(180deg, rgba(17, 27, 49, 0.9) 0%, rgba(12, 18, 34, 0.85) 100%);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
 }

@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { UIButton } from "@/components/ui/button";
+import { UIFormField, UIInput, UISelect } from "@/components/ui/form-field";
+import { UIStatusBadge } from "@/components/ui/status-badge";
 
 interface CalendarPlan {
   id: string;
@@ -44,6 +47,14 @@ interface AccountOption {
   name: string;
   type: string;
   isActive: boolean;
+}
+
+function formatAccountType(type: string): string {
+  if (type === "cash") return "现金";
+  if (type === "bank_card") return "银行卡";
+  if (type === "wechat") return "微信";
+  if (type === "alipay") return "支付宝";
+  return "其他";
 }
 
 function money(value: number): string {
@@ -274,26 +285,23 @@ export default function RepaymentCalendarPage() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_360px]">
         <section className="rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur">
           <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-[160px_1fr_auto]">
-            <label className="text-xs text-slate-300">
-              <span className="mb-1 block">状态</span>
-              <select
+            <UIFormField label="状态">
+              <UISelect
                 value={status}
                 onChange={(event) =>
                   setStatus(event.target.value as "all" | "pending" | "paid" | "overdue")
                 }
                 data-testid="calendar-status-filter"
-                className="w-full rounded-md border border-white/15 bg-black/30 px-2 py-2 text-sm text-slate-100 outline-none"
               >
                 <option value="all">全部</option>
                 <option value="pending">待收</option>
                 <option value="paid">已收</option>
                 <option value="overdue">逾期</option>
-              </select>
-            </label>
+              </UISelect>
+            </UIFormField>
 
-            <label className="text-xs text-slate-300">
-              <span className="mb-1 block">借款人关键词</span>
-              <input
+            <UIFormField label="借款人关键词">
+              <UIInput
                 value={keywordInput}
                 onChange={(event) => setKeywordInput(event.target.value)}
                 onKeyDown={(event) => {
@@ -303,49 +311,48 @@ export default function RepaymentCalendarPage() {
                 }}
                 placeholder="例如：张三"
                 data-testid="calendar-keyword-input"
-                className="w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500"
               />
-            </label>
+            </UIFormField>
 
             <div className="flex items-end gap-2">
-              <button
-                type="button"
+              <UIButton
                 onClick={() => setKeyword(keywordInput.trim())}
                 data-testid="calendar-search-button"
-                className="rounded-md border border-white/15 px-3 py-2 text-xs text-slate-100 transition hover:bg-white/10"
+                size="sm"
+                variant="secondary"
               >
                 搜索
-              </button>
-              <button
-                type="button"
+              </UIButton>
+              <UIButton
                 onClick={() => {
                   setStatus("all");
                   setKeyword("");
                   setKeywordInput("");
                 }}
-                className="rounded-md border border-white/15 px-3 py-2 text-xs text-slate-300 transition hover:bg-white/10"
+                size="sm"
+                variant="ghost"
               >
                 重置
-              </button>
+              </UIButton>
             </div>
           </div>
 
           <div className="mb-4 flex items-center justify-between">
-            <button
-              type="button"
+            <UIButton
               onClick={() => setMonth((current) => shiftMonth(current, -1))}
-              className="rounded-md border border-white/15 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-white/10"
+              size="sm"
+              variant="ghost"
             >
               上月
-            </button>
+            </UIButton>
             <p className="text-base font-semibold">{monthTitle(month)}</p>
-            <button
-              type="button"
+            <UIButton
               onClick={() => setMonth((current) => shiftMonth(current, 1))}
-              className="rounded-md border border-white/15 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-white/10"
+              size="sm"
+              variant="ghost"
             >
               下月
-            </button>
+            </UIButton>
           </div>
 
           <div className="mb-3 grid grid-cols-7 gap-2">
@@ -433,7 +440,17 @@ export default function RepaymentCalendarPage() {
                 <div key={plan.id} className="rounded-lg border border-white/10 bg-black/20 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm text-slate-100">{plan.order.borrowerName}</p>
-                    <p className="text-xs uppercase tracking-wide text-slate-400">{plan.status}</p>
+                    <UIStatusBadge
+                      tone={
+                        plan.status === "overdue"
+                          ? "overdue"
+                          : plan.status === "paid"
+                            ? "paid"
+                            : "active"
+                      }
+                    >
+                      {plan.status === "pending" ? "待收" : plan.status === "paid" ? "已收" : "逾期"}
+                    </UIStatusBadge>
                   </div>
                   <p className="mt-1 text-xs font-mono text-slate-400">{plan.order.orderNo}</p>
                   <p className="mt-2 text-sm text-cyan-200">{money(plan.totalDue)}</p>
@@ -447,18 +464,17 @@ export default function RepaymentCalendarPage() {
                         查看订单
                       </Link>
                       {plan.status !== "paid" ? (
-                        <button
-                          type="button"
+                        <UIButton
                           onClick={() => {
                             setCollectPlan(plan);
                             setCollectError(null);
                             setOccurredAt(defaultOccurredAtLocal());
                           }}
                           data-testid={`calendar-drawer-collect-${plan.id}`}
-                          className="rounded-md border border-cyan-300/60 px-2 py-1 text-[11px] text-cyan-100 hover:bg-cyan-300/20"
+                          size="sm"
                         >
                           核销
-                        </button>
+                        </UIButton>
                       ) : (
                         <span className="text-[11px] text-slate-500">已结清</span>
                       )}
@@ -503,53 +519,49 @@ export default function RepaymentCalendarPage() {
             </p>
             <p className="text-xs text-cyan-200">{money(collectPlan.totalDue)}</p>
 
-            <label className="mt-4 block">
-              <span className="mb-1 block text-xs text-slate-300">收款账户 *</span>
-              <select
+            <UIFormField className="mt-4" label="收款账户" required>
+              <UISelect
                 value={accountId}
                 onChange={(event) => setAccountId(event.target.value)}
                 data-testid="calendar-collect-account-select"
-                className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                 required
               >
                 <option value="">请选择账户</option>
                 {accounts.map((account) => (
                   <option key={account.id} value={account.id}>
-                    {account.name} ({account.type})
+                    {account.name}（{formatAccountType(account.type)}）
                   </option>
                 ))}
-              </select>
-            </label>
+              </UISelect>
+            </UIFormField>
 
-            <label className="mt-3 block">
-              <span className="mb-1 block text-xs text-slate-300">发生时间 *</span>
-              <input
+            <UIFormField className="mt-3" label="发生时间" required>
+              <UIInput
                 type="datetime-local"
                 value={occurredAt}
                 onChange={(event) => setOccurredAt(event.target.value)}
-                className="w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-sm"
                 required
               />
-            </label>
+            </UIFormField>
 
             {collectError ? <p className="mt-3 text-sm text-rose-300">{collectError}</p> : null}
 
             <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
+              <UIButton
                 onClick={() => !collecting && setCollectPlan(null)}
-                className="rounded-md border border-white/20 px-3 py-1.5 text-xs text-slate-300 hover:bg-white/10"
+                size="sm"
+                variant="ghost"
               >
                 取消
-              </button>
-              <button
+              </UIButton>
+              <UIButton
                 type="submit"
                 disabled={collecting}
                 data-testid="calendar-collect-confirm-button"
-                className="rounded-md border border-cyan-300/60 bg-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100 hover:bg-cyan-300/30 disabled:opacity-50"
+                size="sm"
               >
                 {collecting ? "核销中..." : "确认核销"}
-              </button>
+              </UIButton>
             </div>
           </form>
         </div>
