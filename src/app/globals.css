@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0f1c;
-  --foreground: #e2e8f0;
-  --surface-1: #0f172a;
-  --surface-2: #111b31;
-  --surface-3: #17243d;
-  --border-soft: rgba(148, 163, 184, 0.24);
-  --text-dim: #94a3b8;
-  --brand: #22d3ee;
-  --brand-strong: #06b6d4;
-  --success: #34d399;
-  --warning: #f59e0b;
-  --danger: #fb7185;
+  --background: #f5f7fb;
+  --foreground: #0f172a;
+  --surface-1: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #eef2f7;
+  --border-soft: rgba(15, 23, 42, 0.1);
+  --text-dim: #64748b;
+  --brand: #334155;
+  --brand-strong: #0f172a;
+  --success: #16a34a;
+  --warning: #ca8a04;
+  --danger: #dc2626;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -36,7 +36,54 @@ body {
 
 .ui-panel {
   border: 1px solid var(--border-soft);
-  background: linear-gradient(180deg, rgba(17, 27, 49, 0.9) 0%, rgba(12, 18, 34, 0.85) 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-panel);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+}
+
+/* Light theme compatibility mapping for existing utility classes */
+.bg-black\/25,
+.bg-black\/20,
+.bg-black\/15,
+.bg-slate-950,
+.bg-slate-950\/60,
+.bg-slate-950\/90,
+.bg-slate-900 {
+  background-color: #ffffff !important;
+}
+
+.bg-slate-700\/25,
+.bg-slate-700\/30,
+.bg-slate-800\/40 {
+  background-color: #eef2f7 !important;
+}
+
+.border-white\/10,
+.border-white\/15,
+.border-white\/20,
+.border-white\/5 {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+.text-slate-100,
+.text-slate-200,
+.text-slate-300,
+.text-slate-400 {
+  color: #334155 !important;
+}
+
+.text-cyan-100,
+.text-cyan-200,
+.text-cyan-300 {
+  color: #334155 !important;
+}
+
+.text-rose-100,
+.text-rose-300 {
+  color: #dc2626 !important;
+}
+
+.hover\:bg-white\/10:hover,
+.hover\:bg-white\/5:hover {
+  background-color: #eef2f7 !important;
 }

@@ -17,8 +17,8 @@ export function UICard({
     <section className={cn("ui-panel p-5", className)}>
       <header className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-slate-100">{title}</h3>
-          {description ? <p className="mt-1 text-xs text-slate-400">{description}</p> : null}
+          <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+          {description ? <p className="mt-1 text-xs text-slate-500">{description}</p> : null}
         </div>
         {action}
       </header>

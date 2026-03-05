@@ -9,19 +9,19 @@ const navItems = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[radial-gradient(1200px_500px_at_20%_-10%,#1e293b_0%,#101727_45%,#0a0f1c_100%)] text-slate-100">
+    <div className="min-h-screen bg-[radial-gradient(900px_360px_at_12%_-8%,#e2e8f0_0%,#f8fafc_45%,#f5f7fb_100%)] text-slate-900">
       <div className="mx-auto flex min-h-screen max-w-7xl">
-        <aside className="hidden w-64 border-r border-white/10 bg-black/20 p-6 md:block">
+        <aside className="hidden w-64 border-r border-white/10 bg-white/70 p-6 md:block">
           <div className="mb-8">
-            <p className="text-xs uppercase tracking-[0.2em] text-cyan-300/90">Mamba</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight">Finance</h1>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Mamba</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">Finance</h1>
           </div>
           <nav className="space-y-2">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="block rounded-lg px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10"
+                className="block rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100"
               >
                 {item.label}
               </Link>
@@ -35,7 +35,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className="rounded-md border border-white/15 px-3 py-1.5 text-xs text-slate-100"
+                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-700"
               >
                 {item.label}
               </Link>

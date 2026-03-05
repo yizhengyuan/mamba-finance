@@ -15,7 +15,7 @@ export function UIFormField({
 }) {
   return (
     <label className={cn("block", className)}>
-      <span className="mb-1.5 block text-xs text-slate-300">
+      <span className="mb-1.5 block text-xs text-slate-600">
         {label}
         {required ? " *" : ""}
       </span>
@@ -30,7 +30,7 @@ export function UIInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={cn(
-        "w-full rounded-md border border-white/20 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-300/70 focus:outline-none",
+        "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-slate-500 focus:outline-none",
         props.className,
       )}
     />
@@ -42,7 +42,7 @@ export function UISelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
     <select
       {...props}
       className={cn(
-        "w-full rounded-md border border-white/20 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-cyan-300/70 focus:outline-none",
+        "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-slate-500 focus:outline-none",
         props.className,
       )}
     />
