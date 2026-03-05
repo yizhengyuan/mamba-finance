@@ -151,7 +151,7 @@ export default function RepaymentCalendarPage() {
         };
 
         if (!response.ok) {
-          throw new Error(body.message ?? "加载还款日历失败");
+          throw new Error(body.message ?? "加载日历失败");
         }
 
         if (!cancelled) {
@@ -167,7 +167,7 @@ export default function RepaymentCalendarPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "加载还款日历失败");
+          setError(err instanceof Error ? err.message : "加载日历失败");
           setData(null);
         }
       } finally {
@@ -276,7 +276,7 @@ export default function RepaymentCalendarPage() {
   return (
     <section className="space-y-4">
       <header className="rounded-2xl border border-white/10 bg-black/25 p-6 backdrop-blur">
-        <h2 className="text-xl font-semibold">还款日历</h2>
+        <h2 className="text-xl font-semibold">日历</h2>
         <p className="mt-1 text-sm text-slate-300">
           查看月度到期分布，并在同日任务抽屉中直接核销回款。
         </p>
