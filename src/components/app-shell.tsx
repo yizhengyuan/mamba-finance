@@ -10,8 +10,8 @@ const navItems = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[radial-gradient(900px_360px_at_12%_-8%,#e2e8f0_0%,#f8fafc_45%,#f5f7fb_100%)] text-slate-900">
-      <div className="mx-auto flex min-h-screen max-w-7xl">
-        <aside className="hidden w-64 border-r border-white/10 bg-white/70 p-6 md:block">
+      <div className="mx-auto flex w-full max-w-7xl gap-4 px-4 py-4 sm:px-6 sm:py-6">
+        <aside className="sticky top-4 hidden w-64 shrink-0 self-start rounded-2xl border border-white/10 bg-white/85 p-6 shadow-sm md:block">
           <div className="mb-8">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Mamba</p>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">Finance</h1>
@@ -29,7 +29,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         </aside>
 
-        <main className="flex-1 px-4 py-4 sm:px-6 sm:py-6">
+        <main className="min-w-0 flex-1">
           <nav className="mb-4 flex flex-wrap gap-2 md:hidden">
             {navItems.map((item) => (
               <Link
